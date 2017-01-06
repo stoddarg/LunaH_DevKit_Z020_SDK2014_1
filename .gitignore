@@ -1,0 +1,20 @@
+# .gitignore file
+# file tells git what to ignore when checking for changes in any files in this directory
+
+#ignore all files in these directories
+MZ_FSBL/
+MZ_FSBL_bsp/
+.metadata/
+RemoteSystemsTempFiles/
+webtalk/
+
+#ignore these subdirectories
+Debug/
+Release/
+standalone_bsp_0/ps7_cortexa9_0/
+
+#ignore all .pdf files
+*.pdf
+
+#ignore SDK.log file
+SDK.log
