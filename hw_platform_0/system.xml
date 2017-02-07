@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Tue Jan 10 15:11:25 2017" VIVADOVERSION="2014.1">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Tue Feb 07 13:47:05 2017" VIVADOVERSION="2014.1">
 
   <SYSTEMINFO ARCH="zynq" BOARD="em.avnet.com:microzed_7020:part0:1.0" DEVICE="7z020" NAME="design_1_imp" PACKAGE="clg400" SPEEDGRADE="-1"/>
 
@@ -85,7 +85,7 @@
       <DOCUMENTS/>
       <PARAMETERS>
         <PARAMETER NAME="RAM_PERFORMANCE" VALUE="DELAYED_WRITE"/>
-        <PARAMETER NAME="Component_Name" VALUE="design_1_AA_IntegratorV3_0_0"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_AA_IntegratorV3_1_0"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
@@ -415,11 +415,11 @@
         </PORT>
         <PORT DIR="O" NAME="we" SIGIS="undef" SIGNAME="Trigger_0_we">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="en"/>
             <CONNECTION INSTANCE="MUX6_0" PORT="EN_A"/>
             <CONNECTION INSTANCE="MUX6_0" PORT="EN_B"/>
             <CONNECTION INSTANCE="MUX6_0" PORT="EN_C"/>
             <CONNECTION INSTANCE="MUX6_0" PORT="EN_D"/>
+            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="en"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="event_done" SIGIS="undef" SIGNAME="Trigger_0_event_done">
@@ -889,8 +889,8 @@
         </PORT>
         <PORT DIR="O" NAME="gpio_io_o" SIGIS="undef" SIGNAME="axi_gpio_0_gpio_io_o">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="i1s"/>
             <CONNECTION INSTANCE="axi_gpio_0" PORT="gpio_io_i"/>
+            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="i1s"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="gpio_io_t" SIGIS="undef"/>
@@ -1057,8 +1057,8 @@
         </PORT>
         <PORT DIR="O" NAME="gpio_io_o" SIGIS="undef" SIGNAME="axi_gpio_1_gpio_io_o">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="i2s"/>
             <CONNECTION INSTANCE="axi_gpio_1" PORT="gpio_io_i"/>
+            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="i2s"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="gpio_io_t" SIGIS="undef"/>
@@ -2535,8 +2535,8 @@
         </PORT>
         <PORT DIR="O" NAME="gpio_io_o" SIGIS="undef" SIGNAME="axi_gpio_2_gpio_io_o">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="i3s"/>
             <CONNECTION INSTANCE="axi_gpio_2" PORT="gpio_io_i"/>
+            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="i3s"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="gpio_io_t" SIGIS="undef"/>
@@ -2703,8 +2703,8 @@
         </PORT>
         <PORT DIR="O" NAME="gpio_io_o" SIGIS="undef" SIGNAME="axi_gpio_3_gpio_io_o">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="i4s"/>
             <CONNECTION INSTANCE="axi_gpio_3" PORT="gpio_io_i"/>
+            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="i4s"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="gpio_io_t" SIGIS="undef"/>
@@ -3550,8 +3550,8 @@
         </PORT>
         <PORT DIR="O" NAME="Q" SIGIS="data" SIGNAME="c_shift_ram_1_Q">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="din"/>
             <CONNECTION INSTANCE="MUX6_0" PORT="A"/>
+            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="din"/>
           </CONNECTIONS>
         </PORT>
       </PORTS>
@@ -3719,7 +3719,6 @@
         <PORT DIR="O" NAME="clkout" SIGIS="undef" SIGNAME="capture_0_clkout">
           <CONNECTIONS>
             <CONNECTION INSTANCE="AA_0" PORT="clk"/>
-            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="clk"/>
             <CONNECTION INSTANCE="MUX6_0" PORT="clk"/>
             <CONNECTION INSTANCE="Master_Slave_Stream_v1_0_0" PORT="wrclk"/>
             <CONNECTION INSTANCE="TriggerV2_0" PORT="clk"/>
@@ -3730,6 +3729,7 @@
             <CONNECTION INSTANCE="c_shift_ram_5" PORT="CLK"/>
             <CONNECTION INSTANCE="gater_0" PORT="clk"/>
             <CONNECTION INSTANCE="readout_0" PORT="clk"/>
+            <CONNECTION INSTANCE="AA_IntegratorV3_0" PORT="clk"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="load" SIGIS="undef" SIGNAME="capture_0_load">
