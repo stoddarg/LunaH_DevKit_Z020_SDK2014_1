@@ -53,6 +53,7 @@ int ReadCommandPoll();				// Read Command Poll Function
 void SetIntegrationTimes(u8 wfid);	// Set the Registers forIntegral Times
 int PrintData();					// Print Data to the Terminal Window
 void ClearBuffers();				// Clear Processeed Data Buffers
-int DAQ();				// Clear Processeed Data Buffers
+int DAQ();							// Clear Processeed Data Buffers
+int ReadDataIn(int numfilesWritten);// Take data from DRAM, process it, save it to SD
 
 #endif /* LAPP_H_ */
