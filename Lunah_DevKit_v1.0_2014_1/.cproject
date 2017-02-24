@@ -28,6 +28,7 @@
 								<option id="xilinx.gnu.compiler.inferred.swplatform.includes.474300427" superClass="xilinx.gnu.compiler.inferred.swplatform.includes" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../standalone_bsp_0/ps7_cortexa9_0/include"/>
 								</option>
+								<option id="xilinx.gnu.compiler.inferred.swplatform.flags.862705066" superClass="xilinx.gnu.compiler.inferred.swplatform.flags" value="  " valueType="string"/>
 								<inputType id="xilinx.gnu.arm.c.compiler.input.1401187244" name="C source files" superClass="xilinx.gnu.arm.c.compiler.input"/>
 							</tool>
 							<tool id="xilinx.gnu.arm.cxx.toolchain.compiler.debug.285395939" name="ARM g++ compiler" superClass="xilinx.gnu.arm.cxx.toolchain.compiler.debug">
@@ -36,6 +37,7 @@
 								<option id="xilinx.gnu.compiler.inferred.swplatform.includes.1863083868" superClass="xilinx.gnu.compiler.inferred.swplatform.includes" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../standalone_bsp_0/ps7_cortexa9_0/include"/>
 								</option>
+								<option id="xilinx.gnu.compiler.inferred.swplatform.flags.446272865" superClass="xilinx.gnu.compiler.inferred.swplatform.flags" value="  " valueType="string"/>
 							</tool>
 							<tool id="xilinx.gnu.arm.toolchain.archiver.1869115004" name="ARM archiver" superClass="xilinx.gnu.arm.toolchain.archiver"/>
 							<tool id="xilinx.gnu.arm.c.toolchain.linker.debug.1689011847" name="ARM gcc linker" superClass="xilinx.gnu.arm.c.toolchain.linker.debug">
@@ -44,6 +46,8 @@
 								</option>
 								<option id="xilinx.gnu.linker.inferred.swplatform.flags.1384764000" superClass="xilinx.gnu.linker.inferred.swplatform.flags" valueType="libs">
 									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxil,-lgcc,-lc,--end-group"/>
+									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxilffs,-lxil,-lgcc,-lc,--end-group"/>
+									<listOptionValue builtIn="false" value="-Wl,--start-group,-lrsa,-lxil,-lgcc,-lc,--end-group"/>
 								</option>
 								<option id="xilinx.gnu.c.linker.option.lscript.865706366" superClass="xilinx.gnu.c.linker.option.lscript" value="../src/lscript.ld" valueType="string"/>
 								<inputType id="xilinx.gnu.linker.input.83804598" superClass="xilinx.gnu.linker.input">
@@ -58,6 +62,8 @@
 								</option>
 								<option id="xilinx.gnu.linker.inferred.swplatform.flags.1690732488" superClass="xilinx.gnu.linker.inferred.swplatform.flags" valueType="libs">
 									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxil,-lgcc,-lc,--end-group"/>
+									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxilffs,-lxil,-lgcc,-lc,--end-group"/>
+									<listOptionValue builtIn="false" value="-Wl,--start-group,-lrsa,-lxil,-lgcc,-lc,--end-group"/>
 								</option>
 								<option id="xilinx.gnu.c.linker.option.lscript.557846467" superClass="xilinx.gnu.c.linker.option.lscript" value="../src/lscript.ld" valueType="string"/>
 							</tool>
@@ -95,6 +101,7 @@
 								<option id="xilinx.gnu.compiler.inferred.swplatform.includes.528468951" superClass="xilinx.gnu.compiler.inferred.swplatform.includes" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../standalone_bsp_0/ps7_cortexa9_0/include"/>
 								</option>
+								<option id="xilinx.gnu.compiler.inferred.swplatform.flags.1410557366" superClass="xilinx.gnu.compiler.inferred.swplatform.flags" value="  " valueType="string"/>
 								<inputType id="xilinx.gnu.arm.c.compiler.input.1881556666" name="C source files" superClass="xilinx.gnu.arm.c.compiler.input"/>
 							</tool>
 							<tool id="xilinx.gnu.arm.cxx.toolchain.compiler.release.2080736528" name="ARM g++ compiler" superClass="xilinx.gnu.arm.cxx.toolchain.compiler.release">
@@ -103,6 +110,7 @@
 								<option id="xilinx.gnu.compiler.inferred.swplatform.includes.285671660" superClass="xilinx.gnu.compiler.inferred.swplatform.includes" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../standalone_bsp_0/ps7_cortexa9_0/include"/>
 								</option>
+								<option id="xilinx.gnu.compiler.inferred.swplatform.flags.1414020755" superClass="xilinx.gnu.compiler.inferred.swplatform.flags" value="  " valueType="string"/>
 							</tool>
 							<tool id="xilinx.gnu.arm.toolchain.archiver.616121919" name="ARM archiver" superClass="xilinx.gnu.arm.toolchain.archiver"/>
 							<tool id="xilinx.gnu.arm.c.toolchain.linker.release.1513147460" name="ARM gcc linker" superClass="xilinx.gnu.arm.c.toolchain.linker.release">
@@ -111,6 +119,8 @@
 								</option>
 								<option id="xilinx.gnu.linker.inferred.swplatform.flags.939481267" superClass="xilinx.gnu.linker.inferred.swplatform.flags" valueType="libs">
 									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxil,-lgcc,-lc,--end-group"/>
+									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxilffs,-lxil,-lgcc,-lc,--end-group"/>
+									<listOptionValue builtIn="false" value="-Wl,--start-group,-lrsa,-lxil,-lgcc,-lc,--end-group"/>
 								</option>
 								<option id="xilinx.gnu.c.linker.option.lscript.664498499" superClass="xilinx.gnu.c.linker.option.lscript" value="../src/lscript.ld" valueType="string"/>
 								<inputType id="xilinx.gnu.linker.input.2109573564" superClass="xilinx.gnu.linker.input">
@@ -125,6 +135,8 @@
 								</option>
 								<option id="xilinx.gnu.linker.inferred.swplatform.flags.1570842338" superClass="xilinx.gnu.linker.inferred.swplatform.flags" valueType="libs">
 									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxil,-lgcc,-lc,--end-group"/>
+									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxilffs,-lxil,-lgcc,-lc,--end-group"/>
+									<listOptionValue builtIn="false" value="-Wl,--start-group,-lrsa,-lxil,-lgcc,-lc,--end-group"/>
 								</option>
 								<option id="xilinx.gnu.c.linker.option.lscript.145291800" superClass="xilinx.gnu.c.linker.option.lscript" value="../src/lscript.ld" valueType="string"/>
 							</tool>
@@ -155,4 +167,5 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.xilinx.managedbuilder.ui.ARMGCCManagedMakePerProjectProfileC"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
+	<storageModule moduleId="refreshScope"/>
 </cproject>
