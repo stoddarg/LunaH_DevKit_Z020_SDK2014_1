@@ -3,3 +3,4 @@
 2/14/2017 - Graham added updated devkit software files which takes data directly from the DRAM, processes it, and saves it to the SD card.
 The data are saved in binary format and may be converted to text format with my program called bin_to_text on the shared drive.
 2/24/2017 - Graham updated the LunaH devkit files, namely LApp and read_data_in which include 3 new case statement cases to allow the GUI to change various run parameters.
+3/15/2017 - Graham updated two files in the devkit. Namely, LApp.c, read_data_in.c which allow the GUI that was built to access the functions of the devkit. These functions are options 10 - 13 at the 'Main Menu' and are described in more detail in the "Software versions for Luna H" word document in this repository.
