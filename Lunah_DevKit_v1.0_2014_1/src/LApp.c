@@ -89,9 +89,9 @@ int main()
 		for (i=0; i<32; i++ ) { RecvBuffer[i] = '_'; }			// Clear RecvBuffer Variable
 
 		sleep(0.5);  // Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 0.5 s
-		xil_printf("\n\r Devkit version 1.1 \n\r");
+		xil_printf("\n\r Devkit version 2.11 \n\r");
 		xil_printf("MAIN MENU \n\r");
-		xil_printf("******************************\n\r");
+		xil_printf("*****\n\r");
 		xil_printf(" 0) Set Mode of Operation\n\r");
 		xil_printf(" 1) Enable or disable the system\n\r");
 		xil_printf(" 2) Continuously Read of Processed Data\n\r");
@@ -107,7 +107,7 @@ int main()
 		xil_printf("10) GUI Serial Transfer \n\r");
 		xil_printf("11) GUI Serial Change Trigger Threshold\n\r");
 		xil_printf("12) GUI Serial Change Integration Times\n\r");
-		xil_printf("******************************\n\r");
+		xil_printf("******\n\r");
 		while (XUartPs_IsSending(&Uart_PS)) {i++;}  // Wait until Write Buffer is Sent
 
 		// Wait for Input, Check
@@ -116,7 +116,7 @@ int main()
 		ReadCommandPoll();
 		menusel = 99999;
 		sscanf(RecvBuffer,"%02d",&menusel);
-		if ( menusel < 0 || menusel > 12 ) {
+		if ( menusel < 0 || menusel > 13 ) {
 			xil_printf(" Invalid Command: Enter 0-9 \n\r");
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 		}
@@ -242,7 +242,7 @@ int main()
 			xil_printf("\n\r Print Data\n\r");
 			PrintData();
 			break;
-		case 10: //Transfer data over serial port	// Skips setting integrals, threshold
+		case 10: //Transfer data over serial port	// Skips setting integrals, threshold	//Difference is this doesn't save to sd, it prints out the data for us
 			//xil_printf("321");	//echo back to the gui that the request was received
 			mode = 0;
 			Xil_Out32 (XPAR_AXI_GPIO_14_BASEADDR, ((u32)mode));	//sets mode to transfer AA waveforms
@@ -282,6 +282,15 @@ int main()
 			xil_printf("  Short Integral Window 	  [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_1_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_1_BASEADDR));
 			xil_printf("  Long Integral Window      [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_2_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_2_BASEADDR));
 			xil_printf("  Full Integral Window      [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_3_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_3_BASEADDR));
+			break;
+		case 13: //Transfer processed data over the serial port
+			mode = 4;
+			Xil_Out32 (XPAR_AXI_GPIO_14_BASEADDR, ((u32)mode));	//sets mode to processed data
+			sleep(1);
+			enable_state = 1;
+			Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, ((u32)enable_state)); //enables the system
+			sleep(1);
+			getWFDAQ();
 			break;
 		default :
 			break;
@@ -606,7 +615,7 @@ int getWFDAQ(){
 	for (dram_addr = 0xa000000; dram_addr <= 0xA004000; dram_addr+=4){Xil_In32(dram_addr);}
 
 	while(1){
-		buffsize = Xil_In32 (XPAR_AXI_GPIO_11_BASEADDR);
+		buffsize = Xil_In32 (XPAR_AXI_GPIO_11_BASEADDR);	// what does this look at?
 		if (!sw) { sw = XGpioPs_ReadPin(&Gpio, SW_BREAK_GPIO); } //read pin
 		XUartPs_Recv(&Uart_PS, &RecvBuffer, 32);
 		if ( RecvBuffer[0] == 'q' ) { sw = 1; }

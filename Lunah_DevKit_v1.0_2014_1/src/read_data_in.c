@@ -16,11 +16,11 @@ int ReadDataIn(int numFilesWritten){
 	dram_addr = 0;
 	nevents = 0;
 	//bl_sum = 0;
-	bl1 = 0;
-	bl2 = 0;
-	bl3 = 0;
-	bl4 = 0;
-	bl_avg = 0;
+	bl1 = 0.0;
+	bl2 = 0.0;
+	bl3 = 0.0;
+	bl4 = 0.0;
+	bl_avg = 0.0;
 	diff = 0;
 	howFar = 0;
 
