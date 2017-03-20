@@ -27,6 +27,7 @@
 /* Globals */
 #define UART_DEVICEID      XPAR_XUARTPS_0_DEVICE_ID
 #define SW_BREAK_GPIO		51
+#define TEST_BUFFER_SIZE	2
 
 // Hardware Interface
 XUartPs Uart_PS;					// Instance of the UART Device
@@ -36,8 +37,12 @@ static XScuGic_Config *GicConfig; 	// GicConfig
 XScuGic InterruptController;		// Interrupt controller
 
 // UART Variables
-static char SendBuffer[32];		// Buffer for Transmitting Data
+static char SendBuffer[32];		// Buffer for Transmitting Data	// Used for RecvCommandPoll()
 static char RecvBuffer[32];		// Buffer for Receiving Data
+
+/* I2C Variables */
+u8 i2c_Send_Buffer[TEST_BUFFER_SIZE];
+u8 i2c_Recv_Buffer[2];
 
 // General Purpose Variables
 int Status; 					// General purpose Status indicator

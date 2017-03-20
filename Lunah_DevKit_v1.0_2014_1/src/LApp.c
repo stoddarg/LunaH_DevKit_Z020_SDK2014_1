@@ -9,6 +9,7 @@
 ******************************************************************************/
 
 #include "LApp.h"
+#include "LI2C_Interface.h"
 
 
 //////////////////////////// MAIN //////////////////// MAIN //////////////
@@ -89,7 +90,7 @@ int main()
 		for (i=0; i<32; i++ ) { RecvBuffer[i] = '_'; }			// Clear RecvBuffer Variable
 
 		sleep(0.5);  // Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 0.5 s
-		xil_printf("\n\r Devkit version 2.11 \n\r");
+		xil_printf("\n\r Devkit version 2.20 \n\r");
 		xil_printf("MAIN MENU \n\r");
 		xil_printf("*****\n\r");
 		xil_printf(" 0) Set Mode of Operation\n\r");
@@ -107,6 +108,8 @@ int main()
 		xil_printf("10) GUI Serial Transfer \n\r");
 		xil_printf("11) GUI Serial Change Trigger Threshold\n\r");
 		xil_printf("12) GUI Serial Change Integration Times\n\r");
+		xil_printf("13) GUI Transfer Processed Data\n\r");
+		xil_printf("14) High Voltage and Temperature Control \n\r");
 		xil_printf("******\n\r");
 		while (XUartPs_IsSending(&Uart_PS)) {i++;}  // Wait until Write Buffer is Sent
 
@@ -116,8 +119,8 @@ int main()
 		ReadCommandPoll();
 		menusel = 99999;
 		sscanf(RecvBuffer,"%02d",&menusel);
-		if ( menusel < 0 || menusel > 13 ) {
-			xil_printf(" Invalid Command: Enter 0-9 \n\r");
+		if ( menusel < 0 || menusel > 14 ) {
+			xil_printf(" Invalid Command: Enter 0-14 \n\r");
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 		}
 
@@ -291,6 +294,182 @@ int main()
 			Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, ((u32)enable_state)); //enables the system
 			sleep(1);
 			getWFDAQ();
+			break;
+		case 14: //HV and temp control
+			xil_printf("************HIGH VOLTAGE CONTROL************\n\r");
+			xil_printf(" 0) Write value to potentiometer\n\r");
+			xil_printf(" 1) Read value from potentiometer\n\r");
+			xil_printf(" 2) Store value to EEPROM\n\r");
+			xil_printf(" 3) Read value from EEPROM\n\r");
+			xil_printf("*************TEMPERATURE SENSOR*************\n\r");
+			xil_printf(" 4) Read temperature\n\r");
+
+			ReadCommandPoll();
+			menusel = 99999;
+			sscanf(RecvBuffer,"%01d",&menusel);
+			if( menusel < 0 || menusel > 4) { xil_printf("Invalid command.\n\r"); sleep(1); continue; }
+
+			switch(menusel){
+			case 0:	//Write Pots
+				IIC_SLAVE_ADDR=&IIC_SLAVE_ADDR1;
+				cntrl = 0x1; //command 1 - write contents of serial register data to RDAC - see AD5144 datasheet pg 26
+				xil_printf(" Enter a value from 1-256 taps to write to the potentiometer  \n\r");
+				ReadCommandPoll();
+				sscanf(RecvBuffer,"%d",&data_bits);
+				if(data_bits < 1 || data_bits > 256) { xil_printf("Invalid number of taps.\n\r"); sleep(1); continue; }
+				xil_printf(" Enter a number 1-4 to select a particular potentiometer to adjust or 5 for all potentiometers  \n\r");
+				ReadCommandPoll();
+				sscanf(RecvBuffer,"%01d",&rdac);
+				if(rdac < 1 || rdac > 5) { xil_printf("Invalid pot selection.\n\r"); sleep(1); continue; }
+				xil_printf("%d \t %d \n\r", data_bits, rdac);
+
+				switch(rdac){
+				case 1:
+					addr = 0x0;
+					break;
+				case 2:
+					addr = 0x1;
+					break;
+				case 3:
+					addr = 0x2;
+					break;
+				case 4:
+					addr = 0x3;
+					break;
+				case 5:
+					addr = 0x8;
+					break;
+				default:
+					xil_printf("Invalid. No changes made.");
+					break;
+				}
+
+				a = cntrl<<4|addr;
+				i2c_Send_Buffer[0] = a;
+				i2c_Send_Buffer[1] = data_bits;
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
+				break;
+			case 1:	//Read Pots
+				IIC_SLAVE_ADDR=&IIC_SLAVE_ADDR1;
+				cntrl = 0x3; //command 3 - read back contents - see AD5144 datasheet pg 26
+				xil_printf(" Enter a number 1-4 to select which potentiometer to read value  \n\r");
+				ReadCommandPoll();
+				sscanf(RecvBuffer,"%01d",&rdac);
+				if(rdac < 1 || rdac > 4) { xil_printf("Invalid pot selection.\n\r"); sleep(1); continue; }
+
+				switch(rdac){
+				case 1:
+					addr = 0x0;
+					break;
+				case 2:
+					addr = 0x1;
+					break;
+				case 3:
+					addr = 0x2;
+					break;
+				case 4:
+					addr = 0x3;
+					break;
+				default:
+					xil_printf("Invalid. No changes made.");
+					break;
+				}
+
+				a = cntrl<<4|addr;
+				i2c_Send_Buffer[0] = a;
+				i2c_Send_Buffer[1] = 0x3;
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
+				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer);
+				xil_printf("%d \t", Recv_Buffer[0]);
+				xil_printf("taps\n");
+				break;
+			case 2:	//Write EEPROM
+				IIC_SLAVE_ADDR=&IIC_SLAVE_ADDR1;
+				cntrl = 0x7; //command 9 - Copy RDAC register to EEPROM - see AD5144 datasheet pg 26
+				xil_printf("Select which potentiometer value to store in EEPROM (1-4)   \n\r");
+				ReadCommandPoll();
+				sscanf(RecvBuffer,"%01d",&rdac);
+				if(rdac < 1 || rdac > 4) { xil_printf("Invalid pot selection.\n\r"); sleep(1); continue; }
+				xil_printf("%d \t %d \n\r", data_bits, rdac);
+
+				switch(rdac){
+				case 1:
+					addr = 0x0;
+					break;
+				case 2:
+					addr = 0x1;
+					break;
+				case 3:
+					addr = 0x2;
+					break;
+				case 4:
+					addr = 0x3;
+					break;
+				case 5:
+					addr = 0x8;
+					break;
+				default:
+					xil_printf("Invalid. No changes made.");
+					break;
+				}
+
+				a = cntrl<<4|addr;
+				i2c_Send_Buffer[0] = a;
+				i2c_Send_Buffer[1] = 0x1;
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
+				break;
+			case 3:	//Read EEPROM
+				IIC_SLAVE_ADDR=&IIC_SLAVE_ADDR1;
+				cntrl = 0x3;//command 3 - Read back contents - see AD5144 datasheet pg 26
+				xil_printf(" Enter a number 1-4 to select which EEPROM to read  \n\r");
+				ReadCommandPoll();
+				sscanf(RecvBuffer,"%01d",&rdac);
+				if(rdac < 1 || rdac > 4) { xil_printf("Invalid pot selection.\n\r"); sleep(1); continue; }
+
+				switch(rdac){
+				case 1:
+					addr = 0x0;
+					break;
+				case 2:
+					addr = 0x1;
+					break;
+				case 3:
+					addr = 0x2;
+					break;
+				case 4:
+					addr = 0x3;
+					break;
+				default:
+					xil_printf("Invalid. No changes made.");
+					break;
+				}
+
+				//data_bits = 0x3;
+				a = cntrl<<4|addr;
+				i2c_Send_Buffer[0] = a;
+				i2c_Send_Buffer[1] = 0x1;
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
+				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer);
+				xil_printf("%d \t", i2c_Recv_Buffer[0]);
+				xil_printf("taps\n");
+				break;
+			case 4:	//Read Temp
+				IIC_SLAVE_ADDR=&IIC_SLAVE_ADDR2;
+				i2c_Send_Buffer[0] = 0x0;
+				i2c_Send_Buffer[1] = 0x0;
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
+				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer);
+				a = i2c_Recv_Buffer[0]<< 5;
+				b = a | i2c_Recv_Buffer[1] >> 3;
+				b /= 16;
+				xil_printf("%d\xf8\x43\n", b);
+				break;
+			default:
+				i = 1;
+				break;
+			}//end of case statement
+
+
 			break;
 		default :
 			break;
