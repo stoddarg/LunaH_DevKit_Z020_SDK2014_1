@@ -9,25 +9,10 @@
 ******************************************************************************/
 
 #include "LApp.h"
-#include "LI2C_Interface.h"
-
 
 //////////////////////////// MAIN //////////////////// MAIN //////////////
 int main()
 {
-	// Local Variables for main()
-	int i = 0;				// index
-	int	menusel = 99999;	// Menu Select
-	int mode = 9;			// Mode of Operation
-	int enable_state = 0; 	// 0: disabled, 1: enabled
-	int thres = 0;			// Trigger Threshold
-	char updateint = 'N';	// switch to change integral values
-	u32 databuff = 0;		// size of the data buffer
-	int setBL = 0;
-	int setSI = 0;
-	int setLI = 0;
-	int setFI = 0;
-
 	// Initialize System
     init_platform();  		// This initializes the platform, which is ...
 	ps7_post_config();
@@ -81,6 +66,33 @@ int main()
 	XGpioPs_SetDirectionPin(&Gpio, SW_BREAK_GPIO, 1);
 	// *********** Setup the Hardware Reset MIO ****************//
 
+	// *********** Mount SD Card and Initialize Variables ****************//
+	if( doMount == 0 ){			//Initialize the SD card here
+		ffs_res = f_mount(0, NULL);
+		ffs_res = f_mount(0, &fatfs);
+		doMount = 1;
+	}
+	if( f_stat( cLogFile, &fno) ){	// f_stat returns non-zero if not open, so open the file
+		char cZeroBuffer[] = "0000000000 ";
+		ffs_res = f_open(&logFile, cLogFile, FA_WRITE|FA_OPEN_ALWAYS);
+		ffs_res = f_write(&logFile, cZeroBuffer, 10, &numBytesWritten);
+		filptr_clogFile += 10;		// Protect the first xx number of bytes to use as flags
+		ffs_res = f_close(&logFile);
+	}
+	else // If the file exists, read it
+	{
+
+		ffs_res = f_open(&logFile, cLogFile, FA_READ);	//open
+		ffs_res = f_lseek(&logFile, 0);					//go to beginning of file
+		ffs_res = f_read(&logFile, &filptr_buffer, 10, &numBytesRead);	//Read the first xx bytes to determine flags and the size of the file pointer
+		sscanf(filptr_buffer, "%d", &filptr_clogFile);
+		iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "POWER RESET %f ", dTime);
+		ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
+		filptr_clogFile += numBytesWritten;
+		ffs_res = f_close(&logFile);
+	}
+	// *********** Mount SD Card and Initialize Variables ****************//
+
 	// ******************* POLLING LOOP *******************//
 	xil_printf("\n\r Turn on Local Echo: under Terminal-Setup in Tera Term \n\r");
 	xil_printf(" Code is expecting a 'Return' after Each Command \n\r");
@@ -90,7 +102,7 @@ int main()
 		for (i=0; i<32; i++ ) { RecvBuffer[i] = '_'; }			// Clear RecvBuffer Variable
 
 		sleep(0.5);  // Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 0.5 s
-		xil_printf("\n\r Devkit version 2.20 \n\r");
+		xil_printf("\n\r Devkit version 2.23 \n\r");
 		xil_printf("MAIN MENU \n\r");
 		xil_printf("*****\n\r");
 		xil_printf(" 0) Set Mode of Operation\n\r");
@@ -111,11 +123,8 @@ int main()
 		xil_printf("13) GUI Transfer Processed Data\n\r");
 		xil_printf("14) High Voltage and Temperature Control \n\r");
 		xil_printf("******\n\r");
-		while (XUartPs_IsSending(&Uart_PS)) {i++;}  // Wait until Write Buffer is Sent
+		while (XUartPs_IsSending(&Uart_PS)) { }  // Wait until Write Buffer is Sent
 
-		// Wait for Input, Check
-		// If input is valid break while and enter case statement
-		// If input is invalid break and try again
 		ReadCommandPoll();
 		menusel = 99999;
 		sscanf(RecvBuffer,"%02d",&menusel);
@@ -137,12 +146,6 @@ int main()
 			sscanf(RecvBuffer,"%01d",&mode);
 
 			if (mode < 0 || mode > 4 ) { xil_printf("Invalid Command\n\r"); break; }
-			// mode = 0, AA waveform
-			// mode = 1, LPF waveform
-			// mode = 2, DFF waveform
-			// mode = 3, TRG waveform
-			// mode = 4, Processed Data
-			//Detector->SetMode(mode);  // Set Mode for Detector
 			Xil_Out32 (XPAR_AXI_GPIO_14_BASEADDR, ((u32)mode));
 			// Register 14
 			if ( mode == 0 ) { xil_printf("Transfer AA Waveforms\n\r"); }
@@ -151,6 +154,22 @@ int main()
 			if ( mode == 3 ) { xil_printf("Transfer TRG Waveforms\n\r"); }
 			if ( mode == 4 ) { xil_printf("Transfer Processed Data\n\r"); }
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
+
+			dTime += 1;
+			iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "Set mode %d %f ", mode, dTime);
+
+			ffs_res = f_open(&logFile, cLogFile, FA_OPEN_ALWAYS | FA_WRITE);
+			if(ffs_res){
+				xil_printf("Could not open file %d", ffs_res);
+				break;
+			}
+			ffs_res = f_lseek(&logFile, filptr_clogFile);
+			ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
+			filptr_clogFile += numBytesWritten;
+			snprintf(cWriteToLogFile, 10, "%d", filptr_clogFile);
+			ffs_res = f_lseek(&logFile, (10 - LNumDigits(filptr_clogFile)));	// Move to the start of the file
+			ffs_res = f_write(&logFile, cWriteToLogFile, LNumDigits(filptr_clogFile), &numBytesWritten);	//Record the new file pointer
+			ffs_res = f_close(&logFile);
 			break;
 
 		case 1: //Enable or disable the system
@@ -164,42 +183,133 @@ int main()
 			if ( enable_state == 1 ) { xil_printf("DAQ Enabled\n\r"); }
 			if ( enable_state == 0 ) { xil_printf("DAQ Disabled\n\r"); }
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
+
+			dTime += 1;
+			iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "Enable system %d %f ", enable_state, dTime);
+
+			ffs_res = f_open(&logFile, cLogFile, FA_OPEN_ALWAYS | FA_WRITE);
+			if(ffs_res){
+				xil_printf("Could not open file %d", ffs_res);
+				break;
+			}
+			ffs_res = f_lseek(&logFile, filptr_clogFile);
+			ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
+			filptr_clogFile += numBytesWritten;												// Add the number of bytes written to the file pointer
+			snprintf(cWriteToLogFile, 10, "%d", filptr_clogFile);							// Write that to a string for saving
+			ffs_res = f_lseek(&logFile, (10 - LNumDigits(filptr_clogFile)));				// Seek to the beginning of the file skipping the leading zeroes
+			ffs_res = f_write(&logFile, cWriteToLogFile, LNumDigits(filptr_clogFile), &numBytesWritten); // Write the new file pointer
+			ffs_res = f_close(&logFile);
+
 			break;
 
 		case 2: //Continuously Read of Processed Data
+
+			dTime += 1;
+			iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "Print data %d %f ", enable_state, dTime);
+
+			ffs_res = f_open(&logFile, cLogFile, FA_OPEN_ALWAYS | FA_WRITE);
+			if(ffs_res){
+				xil_printf("Could not open file %d", ffs_res);
+				break;
+			}
+			ffs_res = f_lseek(&logFile, filptr_clogFile);
+			ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
+			filptr_clogFile += numBytesWritten;
+			snprintf(cWriteToLogFile, 10, "%d", filptr_clogFile);							// Write that to a string for saving
+			ffs_res = f_lseek(&logFile, (10 - LNumDigits(filptr_clogFile)));				// Seek to the beginning of the file skipping the leading zeroes
+			ffs_res = f_write(&logFile, cWriteToLogFile, LNumDigits(filptr_clogFile), &numBytesWritten); // Write the new file pointer
+			ffs_res = f_close(&logFile);
+
 			xil_printf("\n\r ********Data Acquisition:\n\r");
 			xil_printf(" Press 'q' to Stop or Press Hardware USR reset button  \n\r");
 			xil_printf(" Press <return> to Start");
 			ReadCommandPoll();	//Just get a '\n' to continue
 			DAQ();
-			sw = 0;   // broke out of the read loop, stop swith reset to 0
+			sw = 0;   // broke out of the read loop, stop switch reset to 0
 			break;
 
 		case 3: //Set Threshold
+			iThreshold0 = Xil_In32(XPAR_AXI_GPIO_10_BASEADDR);
 			xil_printf("\n\r Existing Threshold = %d \n\r",Xil_In32(XPAR_AXI_GPIO_10_BASEADDR));
 			xil_printf(" Enter Threshold (6144 to 10240) <return> \n\r");
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%04d",&thres);
-			Xil_Out32(XPAR_AXI_GPIO_10_BASEADDR, ((u32)thres));
+			sscanf(RecvBuffer,"%04d",&iThreshold1);
+			Xil_Out32(XPAR_AXI_GPIO_10_BASEADDR, ((u32)iThreshold1));
 			xil_printf("New Threshold = %d \n\r",Xil_In32(XPAR_AXI_GPIO_10_BASEADDR));
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
+
+			dTime += 1;
+			iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "Set trigger threshold from %d to %d %f ", iThreshold0, iThreshold1, dTime);
+
+			ffs_res = f_open(&logFile, cLogFile, FA_OPEN_ALWAYS | FA_WRITE);
+			if(ffs_res){
+				xil_printf("Could not open file %d", ffs_res);
+				break;
+			}
+			ffs_res = f_lseek(&logFile, filptr_clogFile);
+			ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
+			filptr_clogFile += numBytesWritten;
+			snprintf(cWriteToLogFile, 10, "%d", filptr_clogFile);							// Write that to a string for saving
+			ffs_res = f_lseek(&logFile, (10 - LNumDigits(filptr_clogFile)));				// Seek to the beginning of the file skipping the leading zeroes
+			ffs_res = f_write(&logFile, cWriteToLogFile, LNumDigits(filptr_clogFile), &numBytesWritten); // Write the new file pointer
+			ffs_res = f_close(&logFile);
 			break;
 
 		case 4: //Set Integration Times
+			setIntsArray[4] = -52 + ((int)Xil_In32(XPAR_AXI_GPIO_0_BASEADDR))*4;
+			setIntsArray[5] = -52 + ((int)Xil_In32(XPAR_AXI_GPIO_1_BASEADDR))*4;
+			setIntsArray[6] = -52 + ((int)Xil_In32(XPAR_AXI_GPIO_2_BASEADDR))*4;
+			setIntsArray[7] = -52 + ((int)Xil_In32(XPAR_AXI_GPIO_3_BASEADDR))*4;
+
 			xil_printf("\n\r Existing Integration Times \n\r");
 			xil_printf(" Time = 0 ns is when the Pulse Crossed Threshold \n\r");
 			xil_printf(" Baseline Integral Window \t [-200ns,%dns] \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_0_BASEADDR))*4 );
 			xil_printf(" Short Integral Window \t [-200ns,%dns] \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_1_BASEADDR))*4 );
 			xil_printf(" Long Integral Window  \t [-200ns,%dns] \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_2_BASEADDR))*4 );
 			xil_printf(" Full Integral Window  \t [-200ns,%dns] \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_3_BASEADDR))*4 );
-
 			xil_printf(" Change: (Y)es (N)o <return>\n\r");
 			ReadCommandPoll();
 			sscanf(RecvBuffer,"%c",&updateint);
-			if (updateint == 'N' || updateint == 'n') { break; }
-			if (updateint == 'Y' || updateint == 'y') { SetIntegrationTimes(0); }
-			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 
+			if (updateint == 'N' || updateint == 'n') {
+				dTime += 1;
+				iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "No change to integration times of %d %d %d %d %f ", setIntsArray[4], setIntsArray[5], setIntsArray[6], setIntsArray[7], dTime);
+				ffs_res = f_open(&logFile, cLogFile, FA_OPEN_ALWAYS | FA_WRITE);
+				if(ffs_res){
+					xil_printf("Could not open file %d", ffs_res);
+					break;
+				}
+				ffs_res = f_lseek(&logFile, filptr_clogFile);
+				ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
+				filptr_clogFile += numBytesWritten;
+				snprintf(cWriteToLogFile, 10, "%d", filptr_clogFile);							// Write that to a string for saving
+				ffs_res = f_lseek(&logFile, (10 - LNumDigits(filptr_clogFile)));				// Seek to the beginning of the file skipping the leading zeroes
+				ffs_res = f_write(&logFile, cWriteToLogFile, LNumDigits(filptr_clogFile), &numBytesWritten); // Write the new file pointer
+				ffs_res = f_close(&logFile);
+				break;
+			}
+
+			if (updateint == 'Y' || updateint == 'y') {
+				SetIntegrationTimes(&setIntsArray, &setSamples);
+				dTime += 1;
+				iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "Set integration times to %d %d %d %d from %d %d %d %d %f ",
+						setIntsArray[0], setIntsArray[1], setIntsArray[2], setIntsArray[3], setIntsArray[4], setIntsArray[5], setIntsArray[6], setIntsArray[7], dTime);
+				ffs_res = f_open(&logFile, cLogFile, FA_OPEN_ALWAYS | FA_WRITE);
+				if(ffs_res){
+					xil_printf("Could not open file %d", ffs_res);
+					break;
+				}
+				ffs_res = f_lseek(&logFile, filptr_clogFile);
+				ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
+				filptr_clogFile += numBytesWritten;
+				snprintf(cWriteToLogFile, 10, "%d", filptr_clogFile);							// Write that to a string for saving
+				ffs_res = f_lseek(&logFile, (10 - LNumDigits(filptr_clogFile)));				// Seek to the beginning of the file skipping the leading zeroes
+				ffs_res = f_write(&logFile, cWriteToLogFile, LNumDigits(filptr_clogFile), &numBytesWritten); // Write the new file pointer
+				ffs_res = f_close(&logFile);
+
+			}
+
+			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 			break;
 
 		case 5: //Perform a DMA transfer
@@ -258,8 +368,8 @@ int main()
 		case 11: //change threshold over the serial connection
 			xil_printf("Enter the new threshold: <enter>\n");
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%04d",&thres);
-			Xil_Out32(XPAR_AXI_GPIO_10_BASEADDR, ((u32)thres));
+			sscanf(RecvBuffer,"%04d",&iThreshold1);
+			Xil_Out32(XPAR_AXI_GPIO_10_BASEADDR, ((u32)iThreshold1));
 			xil_printf("New Threshold = %d \n\r",Xil_In32(XPAR_AXI_GPIO_10_BASEADDR));
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 			break;
@@ -325,29 +435,29 @@ int main()
 
 				switch(rdac){
 				case 1:
-					addr = 0x0;
+					pot_addr = 0x0;
 					break;
 				case 2:
-					addr = 0x1;
+					pot_addr = 0x1;
 					break;
 				case 3:
-					addr = 0x2;
+					pot_addr = 0x2;
 					break;
 				case 4:
-					addr = 0x3;
+					pot_addr = 0x3;
 					break;
 				case 5:
-					addr = 0x8;
+					pot_addr = 0x8;
 					break;
 				default:
 					xil_printf("Invalid. No changes made.");
 					break;
 				}
 
-				a = cntrl<<4|addr;
+				a = cntrl<<4|pot_addr;
 				i2c_Send_Buffer[0] = a;
 				i2c_Send_Buffer[1] = data_bits;
-				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR);
 				break;
 			case 1:	//Read Pots
 				IIC_SLAVE_ADDR=&IIC_SLAVE_ADDR1;
@@ -359,28 +469,28 @@ int main()
 
 				switch(rdac){
 				case 1:
-					addr = 0x0;
+					pot_addr = 0x0;
 					break;
 				case 2:
-					addr = 0x1;
+					pot_addr = 0x1;
 					break;
 				case 3:
-					addr = 0x2;
+					pot_addr = 0x2;
 					break;
 				case 4:
-					addr = 0x3;
+					pot_addr = 0x3;
 					break;
 				default:
 					xil_printf("Invalid. No changes made.");
 					break;
 				}
 
-				a = cntrl<<4|addr;
+				a = cntrl<<4|pot_addr;
 				i2c_Send_Buffer[0] = a;
 				i2c_Send_Buffer[1] = 0x3;
-				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
-				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer);
-				xil_printf("%d \t", Recv_Buffer[0]);
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR);
+				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer, IIC_SLAVE_ADDR);
+				xil_printf("%d \t", i2c_Recv_Buffer[0]);
 				xil_printf("taps\n");
 				break;
 			case 2:	//Write EEPROM
@@ -394,29 +504,29 @@ int main()
 
 				switch(rdac){
 				case 1:
-					addr = 0x0;
+					pot_addr = 0x0;
 					break;
 				case 2:
-					addr = 0x1;
+					pot_addr = 0x1;
 					break;
 				case 3:
-					addr = 0x2;
+					pot_addr = 0x2;
 					break;
 				case 4:
-					addr = 0x3;
+					pot_addr = 0x3;
 					break;
 				case 5:
-					addr = 0x8;
+					pot_addr = 0x8;
 					break;
 				default:
 					xil_printf("Invalid. No changes made.");
 					break;
 				}
 
-				a = cntrl<<4|addr;
+				a = cntrl<<4|pot_addr;
 				i2c_Send_Buffer[0] = a;
 				i2c_Send_Buffer[1] = 0x1;
-				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR);
 				break;
 			case 3:	//Read EEPROM
 				IIC_SLAVE_ADDR=&IIC_SLAVE_ADDR1;
@@ -428,16 +538,16 @@ int main()
 
 				switch(rdac){
 				case 1:
-					addr = 0x0;
+					pot_addr = 0x0;
 					break;
 				case 2:
-					addr = 0x1;
+					pot_addr = 0x1;
 					break;
 				case 3:
-					addr = 0x2;
+					pot_addr = 0x2;
 					break;
 				case 4:
-					addr = 0x3;
+					pot_addr = 0x3;
 					break;
 				default:
 					xil_printf("Invalid. No changes made.");
@@ -445,11 +555,11 @@ int main()
 				}
 
 				//data_bits = 0x3;
-				a = cntrl<<4|addr;
+				a = cntrl<<4|pot_addr;
 				i2c_Send_Buffer[0] = a;
 				i2c_Send_Buffer[1] = 0x1;
-				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
-				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer);
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR);
+				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer, IIC_SLAVE_ADDR);
 				xil_printf("%d \t", i2c_Recv_Buffer[0]);
 				xil_printf("taps\n");
 				break;
@@ -457,8 +567,8 @@ int main()
 				IIC_SLAVE_ADDR=&IIC_SLAVE_ADDR2;
 				i2c_Send_Buffer[0] = 0x0;
 				i2c_Send_Buffer[1] = 0x0;
-				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer);
-				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer);
+				Status = IicPsMasterSend(IIC_DEVICE_ID, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR);
+				Status = IicPsMasterRecieve(IIC_DEVICE_ID, i2c_Recv_Buffer, IIC_SLAVE_ADDR);
 				a = i2c_Recv_Buffer[0]<< 5;
 				b = a | i2c_Recv_Buffer[1] >> 3;
 				b /= 16;
@@ -487,13 +597,10 @@ int main()
 //////////////////////////// InitializeAXIDma////////////////////////////////
 // Sets up the AXI DMA
 int InitializeAXIDma(void) {
-	u32 tmpVal_0;
-	u32 tmpVal_1;
+	u32 tmpVal_0 = 0;
+	u32 tmpVal_1 = 0;
 
-	tmpVal_0 = 0;
-	tmpVal_1 = 0;
-
-	tmpVal_0 = Xil_In32(XPAR_AXI_DMA_0_BASEADDR +  0x30);
+	tmpVal_0 = Xil_In32(XPAR_AXI_DMA_0_BASEADDR + 0x30);
 
 	tmpVal_0 = tmpVal_0 | 0x1001; //<allow DMA to produce interrupts> 0 0 <run/stop>
 
@@ -589,111 +696,45 @@ int ReadCommandPoll() {
 //			1 for DFF
 //			2 for LPF
 // At the moment, the software is expecting a 5 char buffer.  This needs to be fixed.
-void SetIntegrationTimes(u8 wfid){
-	int integrals[8];
-	u32 setsamples[8];
-	int i = 0;
+void SetIntegrationTimes(int * setIntsArray, u32 * setSamples){
+	//int setIntsArray[8] = {};
+	//u32 setsamples[8] = {};
 
-	for (i = 0; i<8; i++) {integrals[i] = 0; setsamples[i] = 0;}
+	xil_printf("  Enter Baseline Stop Time in ns: -52 to 0 <return> \t");
+	ReadCommandPoll();
+	sscanf(RecvBuffer,"%d",&setIntsArray[0]);
+	xil_printf("\n\r");
 
-	switch (wfid) { // Switch-Case for performing set integrals
+	xil_printf("  Enter Short Integral Stop Time in ns: -52 to 8000 <return> \t");
+	ReadCommandPoll();
+	sscanf(RecvBuffer,"%d",&setIntsArray[1]);
+	xil_printf("\n\r");
 
-			case 0: //AA Integrals
-				xil_printf("  Enter Baseline Stop Time in ns: -52 to 0 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[0]);
-				xil_printf("\n\r");
+	xil_printf("  Enter Long Integral Stop Time in ns: -52 to 8000 <return> \t");
+	ReadCommandPoll();
+	sscanf(RecvBuffer,"%d",&setIntsArray[2]);
+	xil_printf("\n\r");
 
-				xil_printf("  Enter Short Integral Stop Time in ns: -52 to 8000 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[1]);
-				xil_printf("\n\r");
+	xil_printf("  Enter Full Integral Stop Time in ns: -52 to 8000 <return> \t");
+	ReadCommandPoll();
+	sscanf(RecvBuffer,"%d",&setIntsArray[3]);
+	xil_printf("\n\r");
 
-				xil_printf("  Enter Long Integral Stop Time in ns: -52 to 8000 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[2]);
-				xil_printf("\n\r");
+	setSamples[0] = ((u32)((setIntsArray[0]+52)/4));
+	setSamples[1] = ((u32)((setIntsArray[1]+52)/4));
+	setSamples[2] = ((u32)((setIntsArray[2]+52)/4));
+	setSamples[3] = ((u32)((setIntsArray[3]+52)/4));
 
-				xil_printf("  Enter Full Integral Stop Time in ns: -52 to 8000 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[3]);
-				xil_printf("\n\r");
+	Xil_Out32 (XPAR_AXI_GPIO_0_BASEADDR, setSamples[0]);
+	Xil_Out32 (XPAR_AXI_GPIO_1_BASEADDR, setSamples[1]);
+	Xil_Out32 (XPAR_AXI_GPIO_2_BASEADDR, setSamples[2]);
+	Xil_Out32 (XPAR_AXI_GPIO_3_BASEADDR, setSamples[3]);
 
-				setsamples[0] = ((u32)((integrals[0]+52)/4));
-				setsamples[1] = ((u32)((integrals[1]+52)/4));
-				setsamples[2] = ((u32)((integrals[2]+52)/4));
-				setsamples[3] = ((u32)((integrals[3]+52)/4));
-
-				Xil_Out32 (XPAR_AXI_GPIO_0_BASEADDR, setsamples[0]);
-				Xil_Out32 (XPAR_AXI_GPIO_1_BASEADDR, setsamples[1]);
-				Xil_Out32 (XPAR_AXI_GPIO_2_BASEADDR, setsamples[2]);
-				Xil_Out32 (XPAR_AXI_GPIO_3_BASEADDR, setsamples[3]);
-
-				xil_printf("\n\r  Inputs Rounded to the Nearest 4 ns : Number of Samples\n\r");
-				xil_printf("  Baseline Integral Window  [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_0_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_0_BASEADDR) );
-				xil_printf("  Short Integral Window 	  [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_1_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_1_BASEADDR));
-				xil_printf("  Long Integral Window      [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_2_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_2_BASEADDR));
-				xil_printf("  Full Integral Window      [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_3_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_3_BASEADDR));
-
-				break;
-
-			case 1://DFF Integrals
-				xil_printf("Enter Baseline Stop Time in ns: -32 to 0 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[0]);
-				xil_printf("\n\r");
-
-				xil_printf("Enter Integral Stop Time in ns: 0 to 500 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[1]);
-				xil_printf("\n\r");
-
-				setsamples[0] = ((u32)((integrals[0]+32)/4));
-				setsamples[1] = ((u32)((integrals[1])/4));
-
-		/*		Xil_Out32 (XPAR_AXI_GPIO_7_BASEADDR, setsamples[0]);
-				Xil_Out32 (XPAR_AXI_GPIO_8_BASEADDR, setsamples[1]);*/
-
-				xil_printf("Inputs Rounded to the Nearest 4 ns : Number of Samples");
-		/*		xil_printf("Baseline Integral Window  [-32ns,%dns]: %d \n\r",-32 + ((int)Xil_In32(XPAR_AXI_GPIO_7_BASEADDR))*4, 9+Xil_In32(XPAR_AXI_GPIO_7_BASEADDR) );
-				xil_printf("Integral Window 	      [0ns,%dns]: %d \n\r",((int)Xil_In32(XPAR_AXI_GPIO_8_BASEADDR))*4, 1+Xil_In32(XPAR_AXI_GPIO_8_BASEADDR));*/
-
-				break;
-
-			case 2://LPF Integrals
-				xil_printf("Enter Baseline Stop Time in ns: -60 to 0 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[0]);
-				xil_printf("\n\r");
-
-				xil_printf("Enter Tail Integral Stop Time in ns: 200 to 8000 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[1]);
-				xil_printf("\n\r");
-
-				xil_printf("Enter Full Integral Stop Time in ns: 0 to 8000 <return> \t");
-				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&integrals[2]);
-				xil_printf("\n\r");
-
-				setsamples[0] = ((u32)((integrals[0]+60)/4));
-				setsamples[1] = ((u32)((integrals[1])/4));
-				setsamples[2] = ((u32)((integrals[1])/4));
-
-/*				Xil_Out32 (XPAR_AXI_GPIO_4_BASEADDR, setsamples[0]);
-				Xil_Out32 (XPAR_AXI_GPIO_5_BASEADDR, setsamples[1]);
-				Xil_Out32 (XPAR_AXI_GPIO_6_BASEADDR, setsamples[2]);*/
-
-/*				xil_printf("Inputs Rounded to the Nearest 4 ns : Number of Samples");
-				xil_printf("Baseline Integral Window  [-32ns,%dns]: %d \n\r",-32 + ((int)Xil_In32(XPAR_AXI_GPIO_4_BASEADDR))*4, 16+Xil_In32(XPAR_AXI_GPIO_4_BASEADDR) );
-				xil_printf("Tail Integral Window 	  [200ns,%dns]: %d \n\r",((int)Xil_In32(XPAR_AXI_GPIO_5_BASEADDR))*4, 1+Xil_In32(XPAR_AXI_GPIO_5_BASEADDR));
-				xil_printf("Full Integral Window 	  [0ns,%dns]: %d \n\r",((int)Xil_In32(XPAR_AXI_GPIO_6_BASEADDR))*4, 1+Xil_In32(XPAR_AXI_GPIO_6_BASEADDR));*/
-
-				break;
-
-			default:
-				break;
-	}
+	xil_printf("\n\r  Inputs Rounded to the Nearest 4 ns : Number of Samples\n\r");
+	xil_printf("  Baseline Integral Window  [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_0_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_0_BASEADDR) );
+	xil_printf("  Short Integral Window 	  [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_1_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_1_BASEADDR));
+	xil_printf("  Long Integral Window      [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_2_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_2_BASEADDR));
+	xil_printf("  Full Integral Window      [-200ns,%dns]: %d \n\r",-52 + ((int)Xil_In32(XPAR_AXI_GPIO_3_BASEADDR))*4, 38+Xil_In32(XPAR_AXI_GPIO_3_BASEADDR));
 
 	return;
 }

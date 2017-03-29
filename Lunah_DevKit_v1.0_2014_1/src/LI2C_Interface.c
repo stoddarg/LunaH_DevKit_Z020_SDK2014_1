@@ -23,7 +23,7 @@
 * @note		None.
 *
 *******************************************************************************/
-int IicPsMasterSend(u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer)
+int IicPsMasterSend(u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer, int * iI2C_slave_addr)
 {
 	XIicPs_Config *Config;
 
@@ -37,16 +37,16 @@ int IicPsMasterSend(u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer)
 		return XST_FAILURE;
 	}
 
-	Status = XIicPs_CfgInitialize(&Iic, Config, Config->BaseAddress);
-	if (Status != XST_SUCCESS) {
+	iStatus = XIicPs_CfgInitialize(&Iic, Config, Config->BaseAddress);
+	if (iStatus != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
 
 	/*
 	 * Perform a self-test to ensure that the hardware was built correctly.
 	 */
-	Status = XIicPs_SelfTest(&Iic);
-	if (Status != XST_SUCCESS) {
+	iStatus = XIicPs_SelfTest(&Iic);
+	if (iStatus != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
 
@@ -60,8 +60,8 @@ int IicPsMasterSend(u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer)
 	 * the receive buffer bytes to zero to allow the receive data to be
 	 * verified.
 	 */
-	for (Index = 0; Index < TEST_BUFFER_SIZE; Index++) {
-		ptr_Recv_Buffer[Index] = 0;
+	for (iIndex = 0; iIndex < TEST_BUFFER_SIZE; iIndex++) {
+		ptr_Recv_Buffer[iIndex] = 0;
 	}
 
 	/*
@@ -69,7 +69,7 @@ int IicPsMasterSend(u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer)
 	 * as the return value since we are using it in interrupt mode.
 	 */
 
-	 XIicPs_MasterSend(&Iic, ptr_Send_Buffer, TEST_BUFFER_SIZE, *IIC_SLAVE_ADDR);
+	 XIicPs_MasterSend(&Iic, ptr_Send_Buffer, TEST_BUFFER_SIZE, *iI2C_slave_addr);
 	 sleep(1);
 
 	/*
@@ -80,16 +80,16 @@ int IicPsMasterSend(u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer)
 		/* NOP */
 	}
 
-	if (Status != XST_SUCCESS){
+	if (iStatus != XST_SUCCESS){
 		return XST_FAILURE;
 	}
 	return XST_SUCCESS;
 }
 
-int IicPsMasterRecieve(u16 DeviceId, u8 * ptr_Recv_Buffer)
+int IicPsMasterRecieve(u16 DeviceId, u8 * ptr_Recv_Buffer, int * iI2C_slave_addr)
 {
-	Status = XIicPs_MasterRecvPolled(&Iic, ptr_Recv_Buffer, 0x2, *IIC_SLAVE_ADDR);
-	if (Status != XST_SUCCESS) {
+	iStatus = XIicPs_MasterRecvPolled(&Iic, ptr_Recv_Buffer, 0x2, *iI2C_slave_addr);
+	if (iStatus != XST_SUCCESS) {
 			return XST_FAILURE;
 		}
 	return XST_SUCCESS;

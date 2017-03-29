@@ -58,6 +58,6 @@ FIL file;
 FATFS fatfs;
 
 ///// Function Definitions /////
-int ReadDataIn();					// Print Data to the Terminal Window
+int ReadDataIn(int numFilesWritten);	// Print Data to the Terminal Window
 
 #endif /* READ_DATA_IN_H_ */

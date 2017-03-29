@@ -19,31 +19,18 @@
 #include <xil_io.h>
 #include <stdio.h>
 
-//#define UART_DEVICEID	XPAR_XUARTPS_0_DEVICE_ID
-#define IIC_DEVICE_ID		XPAR_XIICPS_0_DEVICE_ID
 #define IIC_SCLK_RATE		90000
-
+#define TEST_BUFFER_SIZE	2
 /* Globals */
-
 
 /* Declare Variables */
 XIicPs Iic;					//Instance of the IIC device
-int IIC_SLAVE_ADDR1 = 0x20;
-int IIC_SLAVE_ADDR2 = 0x48;
-int *IIC_SLAVE_ADDR;		//pointer to slave
-int a, b;				//used for bitwise operations
-int Status = 0;
-int Index = 0;
-
-int rdac = 0;
-int data_bits = 0;
-int i = 0;
-
-short cntrl = 0;
-short addr = 0;
+int * iI2C_slave_addr;
+int iStatus = 0;
+int iIndex = 0;
 
 /* Function Declarations */
-int IicPsMasterSend(u16 DeviceId, int * ptr_Send_Buffer, u8 * ptr_Recv_Buffer);
-int IicPsMasterRecieve(u16 DeviceId, u8 * ptr_Recv_Buffer);
+int IicPsMasterSend(u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer, int * iI2C_slave_addr);
+int IicPsMasterRecieve(u16 DeviceId, u8 * ptr_Recv_Buffer, int * iI2C_slave_addr);
 
 #endif /* LI2C_INTERFACE_H_ */
