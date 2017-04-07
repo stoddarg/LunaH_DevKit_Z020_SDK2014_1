@@ -82,7 +82,7 @@ int main()
 	else // If the file exists, read it
 	{
 
-		ffs_res = f_open(&logFile, cLogFile, FA_READ);	//open
+		ffs_res = f_open(&logFile, cLogFile, FA_READ|FA_WRITE);	//open with read/write access
 		ffs_res = f_lseek(&logFile, 0);					//go to beginning of file
 		ffs_res = f_read(&logFile, &filptr_buffer, 10, &numBytesRead);	//Read the first xx bytes to determine flags and the size of the file pointer
 		sscanf(filptr_buffer, "%d", &filptr_clogFile);
