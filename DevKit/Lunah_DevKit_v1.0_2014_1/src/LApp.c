@@ -72,8 +72,7 @@ int main()
 		ffs_res = f_mount(0, &fatfs);
 		doMount = 1;
 	}
-	if( f_stat( cLogFile, &fno) ){	// f_stat returns non-zero if not open, so open the file
-		char cZeroBuffer[] = "0000000000 ";
+	if( f_stat( cLogFile, &fno) ){	// f_stat returns non-zero(false) if no file exists, so open/create the file
 		ffs_res = f_open(&logFile, cLogFile, FA_WRITE|FA_OPEN_ALWAYS);
 		ffs_res = f_write(&logFile, cZeroBuffer, 10, &numBytesWritten);
 		filptr_clogFile += 10;		// Protect the first xx number of bytes to use as flags
@@ -86,10 +85,29 @@ int main()
 		ffs_res = f_lseek(&logFile, 0);					//go to beginning of file
 		ffs_res = f_read(&logFile, &filptr_buffer, 10, &numBytesRead);	//Read the first xx bytes to determine flags and the size of the file pointer
 		sscanf(filptr_buffer, "%d", &filptr_clogFile);
+		ffs_res = f_lseek(&logFile, filptr_clogFile);
 		iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "POWER RESET %f ", dTime);
 		ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
 		filptr_clogFile += numBytesWritten;
 		ffs_res = f_close(&logFile);
+	}
+
+	if( f_stat(cDirectoryLogFile, &fnoDIR) )
+	{
+		ffs_res = f_open(&directoryLogFile, cDirectoryLogFile, FA_WRITE|FA_OPEN_ALWAYS);
+		ffs_res = f_write(&directoryLogFile, cZeroBuffer, 10, &numBytesWritten);
+		filptr_cDIRFile += 10;
+		ffs_res = f_write(&directoryLogFile, cLogFile, 12, &numBytesWritten);
+		filptr_cDIRFile += numBytesWritten;
+		ffs_res = f_close(&directoryLogFile);
+	}
+	else
+	{
+		ffs_res = f_open(&directoryLogFile, cDirectoryLogFile, FA_READ);					//open the file
+		ffs_res = f_lseek(&directoryLogFile, 0);											//move to the beginning of the file
+		ffs_res = f_read(&directoryLogFile, &filptr_cDIRFile_buffer, 10, &numBytesWritten);	//read the write pointer
+		sscanf(filptr_cDIRFile_buffer, "%d", &filptr_cDIRFile);								//write the pointer to the relevant variable
+		ffs_res = f_close(&directoryLogFile);												//close the file
 	}
 	// *********** Mount SD Card and Initialize Variables ****************//
 
@@ -155,7 +173,7 @@ int main()
 			if ( mode == 4 ) { xil_printf("Transfer Processed Data\n\r"); }
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 
-			dTime += 1;
+			dTime += 1;	//increment time for testing
 			iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "Set mode %d %f ", mode, dTime);
 
 			ffs_res = f_open(&logFile, cLogFile, FA_OPEN_ALWAYS | FA_WRITE);

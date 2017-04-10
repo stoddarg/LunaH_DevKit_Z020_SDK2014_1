@@ -46,11 +46,17 @@ XScuGic InterruptController;		// Interrupt controller
 FATFS fatfs;
 FRESULT ffs_res;
 FILINFO fno;
+FILINFO fnoDIR;
 int doMount = 0;
+char cZeroBuffer[] = "0000000000 ";
 char cLogFile[] = "LogFile.txt";	//Create a log file and file pointer
 FIL logFile;
 char filptr_buffer[11] = {};		// Holds 10 numbers and a null terminator
 int filptr_clogFile = 0;
+char cDirectoryLogFile[] = "DirectoryFile.txt";	//Directory File to hold all filenames
+FIL directoryLogFile;
+char filptr_cDIRFile_buffer[11] = {};
+int filptr_cDIRFile = 0;
 
 char cWriteToLogFile[LOG_FILE_BUFF_SIZE] = "";			//The buffer for adding information to the log file
 int iSprintfReturn = 0;
