@@ -7,7 +7,7 @@
 
 #include "read_data_in.h"
 
-int ReadDataIn(int numFilesWritten){
+int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iptr_writeToDIRFile){
 
 	struct event_raw *data_array;
 	data_array = (double *)malloc(sizeof(double)*512);
@@ -63,9 +63,8 @@ int ReadDataIn(int numFilesWritten){
 	}	// end of while loop
 
 	static FIL file1;
-	static FATFS fatfs;
-	char filename[15];
-	char *SD_File;
+	//static FATFS fatfs;
+	char filenameBin[20] = {};
 
 	FRESULT res;				// Return variable for SD functions
 	uint numBytesWritten;
@@ -74,23 +73,30 @@ int ReadDataIn(int numFilesWritten){
 	Xil_DCacheFlush();
 	Xil_DCacheDisable();
 
-	if( numFilesWritten == 0 ){	// The first iteration we need to unmount anything that was already there and
-	res = f_mount(0, NULL);		// mount the SD Card so that we may open, write, and close files on it
-	res = f_mount(0, &fatfs);	// This is the line that initializes the FAT File System
-	}
+	iSprintfRet = snprintf(filenameBin, FILENAME_BUFF_SIZE, "test%08d.bin ", 4144);
 
-	sprintf(filename, "test%04d.bin",4143);	// fills in "test0xxx.bin" with the number of times we have written a file
-	SD_File = (char *)filename;							// so the final name is something like "test0001.bin" -> "test9999.bin"
-	res = f_open(&file1, SD_File, FA_OPEN_ALWAYS | FA_WRITE);	// Open the file if it exists, if not create a new file; file has write permission
-
+	res = f_open(&file1, filenameBin, FA_OPEN_ALWAYS | FA_WRITE);	// Open the file if it exists, if not create a new file; file has write permission
 	howFar = 36720 * numFilesWritten;					// Calculate where to put the file pointer for writing
 	res = f_lseek(&file1, howFar);						// Move the file write pointer to somewhere in the file
-
 	res = f_write(&file1, (const void*)data_array, fileSize, &numBytesWritten);	// Write the array data from above to the file, returns the #bytes written
-
 	res = f_close(&file1);		// Close the file on the SD card
 
 	//res = f_mount(0, NULL);	// Unmount the SD Card	// don't un-comment this line or the SD card will unmount and then be unable to re-mount correctly
+
+	if ( iptr_writeToDIRFile ){	// when 1 we add to the file, 0 does not trigger the if()
+		res = f_open(directoryLogFileObject, cDirectoryLogFile1, FA_READ|FA_WRITE);
+		res = f_lseek(directoryLogFileObject, 0);
+		res = f_read(directoryLogFileObject, wrPtrBuff, 10, &inumBytesRead);
+		sscanf(wrPtrBuff, "%d", &iwrPtr);				//take the write pointer from char -> integer so we may use it
+		res = f_lseek(directoryLogFileObject, iwrPtr);	//move the write pointer so we don't overwrite info
+		res = f_write(directoryLogFileObject, filenameBin, iSprintfRet, &inumBytesWritten);	//add the new file name
+		iwrPtr += inumBytesWritten;						//update the write pointer
+		res = f_lseek(directoryLogFileObject, 0);		//seek to beginning again
+		snprintf(wrPtrBuff, 10, "%d", iwrPtr);			// Write that integer to a string for saving
+		res = f_lseek(directoryLogFileObject, (10 - LNumDigits(iwrPtr)));	// Seek to the beginning of the file skipping the leading zeroes
+		res = f_write(directoryLogFileObject, wrPtrBuff, LNumDigits(iwrPtr), &inumBytesWritten); // Write the new file pointer
+		res = f_close(directoryLogFileObject);
+	}
 
 	free(data_array);			// Return the space reserved for the array back to the OS
 	return sw;

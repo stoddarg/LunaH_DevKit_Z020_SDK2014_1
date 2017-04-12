@@ -22,10 +22,12 @@
 #include "xsdps.h"			/* SD device driver */
 #include "ff.h"
 #include "xil_cache.h"
+#include "LNumDigits.h"
 
 ///// Global Variables /////
 #define SW_BREAK_GPIO		51
 #define data_array_size		512
+#define FILENAME_BUFF_SIZE	120
 
 ///// Structure Definitions ////
 
@@ -54,10 +56,17 @@ int dram_addr, array_index, diff, nevents;
 double bl1, bl2, bl3, bl4, bl_avg;	// bl_sum;
 long long howFar;
 
-FIL file;
-FATFS fatfs;
+//FIL file;
+//FATFS fatfs;
+FILINFO finfo;
+int iwrPtr = 0;
+char wrPtrBuff[11] = {};		// Holds 10 numbers and a null terminator
+char cDirectoryLogFile1[] = "DirectoryFile.txt";	//Directory File to hold all filenames
+uint inumBytesRead = 0;
+uint inumBytesWritten = 0;
+int iSprintfRet = 0;
 
 ///// Function Definitions /////
-int ReadDataIn(int numFilesWritten);	// Print Data to the Terminal Window
+int ReadDataIn(int numFilesWritten, FIL * filObj, int iptr_writeToDIRFile);	// Print Data to the Terminal Window
 
 #endif /* READ_DATA_IN_H_ */

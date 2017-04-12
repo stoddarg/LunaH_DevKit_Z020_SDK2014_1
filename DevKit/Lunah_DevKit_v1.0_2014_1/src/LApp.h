@@ -53,10 +53,11 @@ char cLogFile[] = "LogFile.txt";	//Create a log file and file pointer
 FIL logFile;
 char filptr_buffer[11] = {};		// Holds 10 numbers and a null terminator
 int filptr_clogFile = 0;
-char cDirectoryLogFile[] = "DirectoryFile.txt";	//Directory File to hold all filenames
+char cDirectoryLogFile0[] = "DirectoryFile.txt";	//Directory File to hold all filenames
 FIL directoryLogFile;
 char filptr_cDIRFile_buffer[11] = {};
 int filptr_cDIRFile = 0;
+static int writeToDIRFile = 1;
 
 char cWriteToLogFile[LOG_FILE_BUFF_SIZE] = "";			//The buffer for adding information to the log file
 int iSprintfReturn = 0;
@@ -121,7 +122,7 @@ void SetIntegrationTimes();			// Set the Registers forIntegral Times
 int PrintData();					// Print Data to the Terminal Window
 void ClearBuffers();				// Clear Processeed Data Buffers
 int DAQ();							// Clear Processeed Data Buffers
-int ReadDataIn(int numfilesWritten);// Take data from DRAM, process it, save it to SD
+int ReadDataIn(int numfilesWritten, FIL * filObj, int * writeToDIRFile);// Take data from DRAM, process it, save it to SD
 int getWFDAQ();						// Print data skipping saving it to SD card
 int LNumDigits(int number);			// Determine the number of digits in an int
 

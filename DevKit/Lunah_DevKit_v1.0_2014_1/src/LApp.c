@@ -75,35 +75,37 @@ int main()
 	if( f_stat( cLogFile, &fno) ){	// f_stat returns non-zero(false) if no file exists, so open/create the file
 		ffs_res = f_open(&logFile, cLogFile, FA_WRITE|FA_OPEN_ALWAYS);
 		ffs_res = f_write(&logFile, cZeroBuffer, 10, &numBytesWritten);
-		filptr_clogFile += 10;		// Protect the first xx number of bytes to use as flags
+		filptr_clogFile += numBytesWritten;		// Protect the first xx number of bytes to use as flags, in this case xx must be 10
 		ffs_res = f_close(&logFile);
 	}
 	else // If the file exists, read it
 	{
-
 		ffs_res = f_open(&logFile, cLogFile, FA_READ|FA_WRITE);	//open with read/write access
-		ffs_res = f_lseek(&logFile, 0);					//go to beginning of file
-		ffs_res = f_read(&logFile, &filptr_buffer, 10, &numBytesRead);	//Read the first xx bytes to determine flags and the size of the file pointer
-		sscanf(filptr_buffer, "%d", &filptr_clogFile);
-		ffs_res = f_lseek(&logFile, filptr_clogFile);
-		iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "POWER RESET %f ", dTime);
-		ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);
-		filptr_clogFile += numBytesWritten;
-		ffs_res = f_close(&logFile);
+		ffs_res = f_lseek(&logFile, 0);							//go to beginning of file
+		ffs_res = f_read(&logFile, &filptr_buffer, 10, &numBytesRead);	//Read the first 10 bytes to determine flags and the size of the write pointer
+		sscanf(filptr_buffer, "%d", &filptr_clogFile);			//take the write pointer from char -> integer so we may use it
+		ffs_res = f_lseek(&logFile, filptr_clogFile);			//move the write pointer so we don't overwrite info
+		iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "POWER RESET %f ", dTime);	//write that the system was power cycled
+		ffs_res = f_write(&logFile, cWriteToLogFile, iSprintfReturn, &numBytesWritten);	//write to the file
+		filptr_clogFile += numBytesWritten;						//update the write pointer
+		ffs_res = f_close(&logFile);							//close the file
 	}
 
-	if( f_stat(cDirectoryLogFile, &fnoDIR) )
+	if( f_stat(cDirectoryLogFile0, &fnoDIR) )	//check if the file exists
 	{
-		ffs_res = f_open(&directoryLogFile, cDirectoryLogFile, FA_WRITE|FA_OPEN_ALWAYS);
-		ffs_res = f_write(&directoryLogFile, cZeroBuffer, 10, &numBytesWritten);
-		filptr_cDIRFile += 10;
-		ffs_res = f_write(&directoryLogFile, cLogFile, 12, &numBytesWritten);
-		filptr_cDIRFile += numBytesWritten;
-		ffs_res = f_close(&directoryLogFile);
+		ffs_res = f_open(&directoryLogFile, cDirectoryLogFile0, FA_WRITE|FA_OPEN_ALWAYS);	//if no, create the file
+		ffs_res = f_write(&directoryLogFile, cZeroBuffer, 10, &numBytesWritten);			//write the zero buffer so we can keep track of the write pointer
+		filptr_cDIRFile += 10;																//move the write pointer
+		ffs_res = f_write(&directoryLogFile, cLogFile, 12, &numBytesWritten);				//write the name of the log file because it was created above
+		filptr_cDIRFile += numBytesWritten;													//update the write pointer
+		snprintf(cWriteToLogFile, 10, "%d", filptr_cDIRFile);								//write formatted output to a sized buffer; create a string of a certain length
+		ffs_res = f_lseek(&directoryLogFile, (10 - LNumDigits(filptr_cDIRFile)));			// Move to the start of the file
+		ffs_res = f_write(&directoryLogFile, cWriteToLogFile, LNumDigits(filptr_cDIRFile), &numBytesWritten);	//Record the new file pointer
+		ffs_res = f_close(&directoryLogFile);												//close the file
 	}
-	else
+	else	//if the file exists, read it
 	{
-		ffs_res = f_open(&directoryLogFile, cDirectoryLogFile, FA_READ);					//open the file
+		ffs_res = f_open(&directoryLogFile, cDirectoryLogFile0, FA_READ);					//open the file
 		ffs_res = f_lseek(&directoryLogFile, 0);											//move to the beginning of the file
 		ffs_res = f_read(&directoryLogFile, &filptr_cDIRFile_buffer, 10, &numBytesWritten);	//read the write pointer
 		sscanf(filptr_cDIRFile_buffer, "%d", &filptr_cDIRFile);								//write the pointer to the relevant variable
@@ -800,6 +802,7 @@ int DAQ(){
 	int buffsize; 	//BRAM buffer size
 	int dram_addr;	// DRAM Address
 	static int filesWritten = 0;
+	writeToDIRFile = 1;
 
 	XUartPs_SetOptions(&Uart_PS,XUARTPS_OPTION_RESET_RX);
 
@@ -827,9 +830,9 @@ int DAQ(){
 			Xil_Out32 (XPAR_AXI_GPIO_15_BASEADDR, 0);
 			//Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, 1);
 			ClearBuffers();
-			sw = ReadDataIn(filesWritten);
+			sw = ReadDataIn(filesWritten, &directoryLogFile, writeToDIRFile);
 			++filesWritten;
-			// PrintData();
+			writeToDIRFile = 0;
 		}
 	}
 
