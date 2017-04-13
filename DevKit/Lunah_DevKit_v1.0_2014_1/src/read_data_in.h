@@ -67,6 +67,6 @@ uint inumBytesWritten = 0;
 int iSprintfRet = 0;
 
 ///// Function Definitions /////
-int ReadDataIn(int numFilesWritten, FIL * filObj, int iptr_writeToDIRFile);	// Print Data to the Terminal Window
+int ReadDataIn(int numFilesWritten, FIL * filObj, int iwriteToDIRFile);	// Print Data to the Terminal Window
 
 #endif /* READ_DATA_IN_H_ */

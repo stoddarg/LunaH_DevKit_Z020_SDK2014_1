@@ -96,7 +96,7 @@ int main()
 		ffs_res = f_open(&directoryLogFile, cDirectoryLogFile0, FA_WRITE|FA_OPEN_ALWAYS);	//if no, create the file
 		ffs_res = f_write(&directoryLogFile, cZeroBuffer, 10, &numBytesWritten);			//write the zero buffer so we can keep track of the write pointer
 		filptr_cDIRFile += 10;																//move the write pointer
-		ffs_res = f_write(&directoryLogFile, cLogFile, 12, &numBytesWritten);				//write the name of the log file because it was created above
+		ffs_res = f_write(&directoryLogFile, cLogFile, 11, &numBytesWritten);				//write the name of the log file because it was created above
 		filptr_cDIRFile += numBytesWritten;													//update the write pointer
 		snprintf(cWriteToLogFile, 10, "%d", filptr_cDIRFile);								//write formatted output to a sized buffer; create a string of a certain length
 		ffs_res = f_lseek(&directoryLogFile, (10 - LNumDigits(filptr_cDIRFile)));			// Move to the start of the file
@@ -142,14 +142,15 @@ int main()
 		xil_printf("12) GUI Serial Change Integration Times\n\r");
 		xil_printf("13) GUI Transfer Processed Data\n\r");
 		xil_printf("14) High Voltage and Temperature Control \n\r");
+		xil_printf("15) Print Out All Files in the Directory \n\r");
 		xil_printf("******\n\r");
 		while (XUartPs_IsSending(&Uart_PS)) { }  // Wait until Write Buffer is Sent
 
 		ReadCommandPoll();
 		menusel = 99999;
 		sscanf(RecvBuffer,"%02d",&menusel);
-		if ( menusel < 0 || menusel > 14 ) {
-			xil_printf(" Invalid Command: Enter 0-14 \n\r");
+		if ( menusel < 0 || menusel > 15 ) {
+			xil_printf(" Invalid Command: Enter 0-15 \n\r");
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 		}
 
@@ -598,18 +599,25 @@ int main()
 				i = 1;
 				break;
 			}//end of case statement
-
-
 			break;
+		case 15:
+			ffs_res = f_open(&directoryLogFile, cDirectoryLogFile0, FA_READ);
+			dirSize = f_size(&directoryLogFile) - 10;
+			filptr_cDIRFile = 10;
+			dirFileContents = malloc(1 * dirSize + 1);
+			ffs_res = f_lseek(&directoryLogFile, 10);
+			ffs_res = f_read(&directoryLogFile, dirFileContents, dirSize, &numBytesRead);
+			ffs_res = f_close(&directoryLogFile);
+			snprintf(dirFileContents, dirSize + 1, dirFileContents + '\0');
+			xil_printf(dirFileContents);
+			free(dirFileContents);
 		default :
 			break;
 		} // End Switch-Case Menu Select
 
 	}	// ******************* POLLING LOOP *******************//
 
-
-    cleanup_platform();  // Clean up the platform, which is ...
-
+    cleanup_platform();
     return 0;
 }
 //////////////////////////// MAIN //////////////////// MAIN //////////////

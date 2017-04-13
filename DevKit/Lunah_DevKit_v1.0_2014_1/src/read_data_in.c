@@ -7,7 +7,7 @@
 
 #include "read_data_in.h"
 
-int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iptr_writeToDIRFile){
+int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iwriteToDIRFile){
 
 	struct event_raw *data_array;
 	data_array = (double *)malloc(sizeof(double)*512);
@@ -59,7 +59,6 @@ int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iptr_write
 		else {
 			dram_addr += 4;
 		}
-
 	}	// end of while loop
 
 	static FIL file1;
@@ -73,7 +72,7 @@ int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iptr_write
 	Xil_DCacheFlush();
 	Xil_DCacheDisable();
 
-	iSprintfRet = snprintf(filenameBin, FILENAME_BUFF_SIZE, "test%08d.bin ", 4144);
+	iSprintfRet = snprintf(filenameBin, FILENAME_BUFF_SIZE, "test%08d.bin", 4142);
 
 	res = f_open(&file1, filenameBin, FA_OPEN_ALWAYS | FA_WRITE);	// Open the file if it exists, if not create a new file; file has write permission
 	howFar = 36720 * numFilesWritten;					// Calculate where to put the file pointer for writing
@@ -83,7 +82,7 @@ int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iptr_write
 
 	//res = f_mount(0, NULL);	// Unmount the SD Card	// don't un-comment this line or the SD card will unmount and then be unable to re-mount correctly
 
-	if ( iptr_writeToDIRFile ){	// when 1 we add to the file, 0 does not trigger the if()
+	if ( iwriteToDIRFile ){	// when 1 we add to the file, 0 does not trigger the if()
 		res = f_open(directoryLogFileObject, cDirectoryLogFile1, FA_READ|FA_WRITE);
 		res = f_lseek(directoryLogFileObject, 0);
 		res = f_read(directoryLogFileObject, wrPtrBuff, 10, &inumBytesRead);

@@ -9,6 +9,7 @@
 #define LAPP_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "platform.h"
 #include "ps7_init.h"
 #include <xil_io.h>
@@ -27,6 +28,9 @@
 #include "xsdps.h"			// SD device driver
 #include "ff.h"
 #include "xil_cache.h"
+
+// IiC Interface
+//#include "LI2C_Interface.h"
 
 /* Globals */
 #define LOG_FILE_BUFF_SIZE	120
@@ -64,6 +68,9 @@ int iSprintfReturn = 0;
 double dTime = 12345.67;
 uint numBytesWritten = 0;
 uint numBytesRead = 0;
+
+int dirSize = 0;
+char * dirFileContents;
 
 /* UART Variables */
 static char SendBuffer[32];		// Buffer for Transmitting Data	// Used for RecvCommandPoll()
