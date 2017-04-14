@@ -122,7 +122,7 @@ int main()
 		for (i=0; i<32; i++ ) { RecvBuffer[i] = '_'; }			// Clear RecvBuffer Variable
 
 		sleep(0.5);  // Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 0.5 s
-		xil_printf("\n\r Devkit version 2.23 \n\r");
+		xil_printf("\n\r Devkit version 2.25 \n\r");
 		xil_printf("MAIN MENU \n\r");
 		xil_printf("*****\n\r");
 		xil_printf(" 0) Set Mode of Operation\n\r");
@@ -810,7 +810,6 @@ int DAQ(){
 	int buffsize; 	//BRAM buffer size
 	int dram_addr;	// DRAM Address
 	static int filesWritten = 0;
-	writeToDIRFile = 1;
 
 	XUartPs_SetOptions(&Uart_PS,XUARTPS_OPTION_RESET_RX);
 
@@ -838,9 +837,8 @@ int DAQ(){
 			Xil_Out32 (XPAR_AXI_GPIO_15_BASEADDR, 0);
 			//Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, 1);
 			ClearBuffers();
-			sw = ReadDataIn(filesWritten, &directoryLogFile, writeToDIRFile);
+			sw = ReadDataIn(filesWritten, &directoryLogFile);
 			++filesWritten;
-			writeToDIRFile = 0;
 		}
 	}
 

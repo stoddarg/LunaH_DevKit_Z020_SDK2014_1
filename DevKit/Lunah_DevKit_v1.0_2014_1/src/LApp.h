@@ -129,7 +129,7 @@ void SetIntegrationTimes();			// Set the Registers forIntegral Times
 int PrintData();					// Print Data to the Terminal Window
 void ClearBuffers();				// Clear Processeed Data Buffers
 int DAQ();							// Clear Processeed Data Buffers
-int ReadDataIn(int numfilesWritten, FIL * filObj, int * writeToDIRFile);// Take data from DRAM, process it, save it to SD
+int ReadDataIn(int numfilesWritten, FIL * filObj);// Take data from DRAM, process it, save it to SD
 int getWFDAQ();						// Print data skipping saving it to SD card
 int LNumDigits(int number);			// Determine the number of digits in an int
 

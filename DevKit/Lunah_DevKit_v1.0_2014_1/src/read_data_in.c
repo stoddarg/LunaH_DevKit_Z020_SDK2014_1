@@ -7,7 +7,7 @@
 
 #include "read_data_in.h"
 
-int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iwriteToDIRFile){
+int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject){
 
 	struct event_raw *data_array;
 	data_array = (double *)malloc(sizeof(double)*512);
@@ -72,17 +72,12 @@ int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iwriteToDI
 	Xil_DCacheFlush();
 	Xil_DCacheDisable();
 
-	iSprintfRet = snprintf(filenameBin, FILENAME_BUFF_SIZE, "test%08d.bin", 4142);
+	iSprintfRet = snprintf(filenameBin, FILENAME_BUFF_SIZE, "test%08d.bin", 4141);
 
-	res = f_open(&file1, filenameBin, FA_OPEN_ALWAYS | FA_WRITE);	// Open the file if it exists, if not create a new file; file has write permission
-	howFar = 36720 * numFilesWritten;					// Calculate where to put the file pointer for writing
-	res = f_lseek(&file1, howFar);						// Move the file write pointer to somewhere in the file
-	res = f_write(&file1, (const void*)data_array, fileSize, &numBytesWritten);	// Write the array data from above to the file, returns the #bytes written
-	res = f_close(&file1);		// Close the file on the SD card
+	FILINFO finfo2;
+	res = f_stat(filenameBin, &finfo2);
 
-	//res = f_mount(0, NULL);	// Unmount the SD Card	// don't un-comment this line or the SD card will unmount and then be unable to re-mount correctly
-
-	if ( iwriteToDIRFile ){	// when 1 we add to the file, 0 does not trigger the if()
+	if ( f_stat(filenameBin, &finfo) ){	// when 1 we add to the file, 0 does not trigger the if()	// before we get to the main save loop, interrogate to see if the file already exists
 		res = f_open(directoryLogFileObject, cDirectoryLogFile1, FA_READ|FA_WRITE);
 		res = f_lseek(directoryLogFileObject, 0);
 		res = f_read(directoryLogFileObject, wrPtrBuff, 10, &inumBytesRead);
@@ -96,6 +91,14 @@ int ReadDataIn(int numFilesWritten, FIL * directoryLogFileObject, int iwriteToDI
 		res = f_write(directoryLogFileObject, wrPtrBuff, LNumDigits(iwrPtr), &inumBytesWritten); // Write the new file pointer
 		res = f_close(directoryLogFileObject);
 	}
+
+	res = f_open(&file1, filenameBin, FA_OPEN_ALWAYS | FA_WRITE);	// Open the file if it exists, if not create a new file; file has write permission
+	howFar = 36720 * numFilesWritten;					// Calculate where to put the file pointer for writing
+	res = f_lseek(&file1, howFar);						// Move the file write pointer to somewhere in the file
+	res = f_write(&file1, (const void*)data_array, fileSize, &numBytesWritten);	// Write the array data from above to the file, returns the #bytes written
+	res = f_close(&file1);		// Close the file on the SD card
+
+	//res = f_mount(0, NULL);	// Unmount the SD Card	// don't un-comment this line or the SD card will unmount and then be unable to re-mount correctly
 
 	free(data_array);			// Return the space reserved for the array back to the OS
 	return sw;
