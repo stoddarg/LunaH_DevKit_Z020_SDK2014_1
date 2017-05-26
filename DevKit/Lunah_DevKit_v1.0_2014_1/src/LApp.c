@@ -22,8 +22,9 @@ int main()
 	Xil_Out32 (XPAR_AXI_GPIO_17_BASEADDR , 1);
 	InitializeInterruptSystem(XPAR_PS7_SCUGIC_0_DEVICE_ID);
 
-	for (i=0; i<32; i++ ) { RecvBuffer[i] = '_'; }		// Clear RecvBuffer Variable
-	for (i=0; i<32; i++ ) { SendBuffer[i] = '_'; }		// Clear SendBuffer Variable
+	// Initialize buffers
+	memset(RecvBuffer, '0', 32);	// Clear RecvBuffer Variable
+	memset(SendBuffer, '0', 32);	// Clear SendBuffer Variable
 
 	//*******************Setup the UART **********************//
 	XUartPs_Config *Config = XUartPs_LookupConfig(UART_DEVICEID);
@@ -33,14 +34,14 @@ int main()
 
 	/* Conduct a Selftest for the UART */
 	Status = XUartPs_SelfTest(&Uart_PS);
-	if (Status != 0) { return 1; }
+	if (Status != 0) { return 1; }			//handle error checks here better
 
 	/* Set to normal mode. */
 	XUartPs_SetOperMode(&Uart_PS, XUARTPS_OPER_MODE_NORMAL);
 	//*******************Setup the UART **********************//
 
 	//*******************Receive and Process Packets **********************//
-	Xil_Out32 (XPAR_AXI_GPIO_0_BASEADDR, 11);
+	Xil_Out32 (XPAR_AXI_GPIO_0_BASEADDR, 11);	// understand what this is doing
 	Xil_Out32 (XPAR_AXI_GPIO_1_BASEADDR, 71);
 	Xil_Out32 (XPAR_AXI_GPIO_2_BASEADDR, 167);
 	Xil_Out32 (XPAR_AXI_GPIO_3_BASEADDR, 2015);
@@ -52,12 +53,6 @@ int main()
 	//*******************enable the system **********************//
 	Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, 1);
 	//*******************Receive and Process Packets **********************//
-
-	//******************Setup Detector and Module Objects*****************//
-	//LDetector *Detector = LDetector();
-	//Detector->SetMode(1); // Processed Data Mode
-	//******************Setup Detector and Module Objects*****************//
-
 
 	// *********** Setup the Hardware Reset GPIO ****************//
 	GPIOConfigPtr = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
@@ -114,14 +109,11 @@ int main()
 	// *********** Mount SD Card and Initialize Variables ****************//
 
 	// ******************* POLLING LOOP *******************//
-	xil_printf("\n\r Turn on Local Echo: under Terminal-Setup in Tera Term \n\r");
-	xil_printf(" Code is expecting a 'Return' after Each Command \n\r");
 	while(1){
-		sw = 0;   //  stop switch reset to 0
 		XUartPs_SetOptions(&Uart_PS,XUARTPS_OPTION_RESET_RX);	// Clear UART Read Buffer
-		for (i=0; i<32; i++ ) { RecvBuffer[i] = '_'; }			// Clear RecvBuffer Variable
+		memset(RecvBuffer, '0', 32);							// Clear RecvBuffer Variable
 
-		sleep(0.5);  // Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 0.5 s
+		//sleep(0.5);  // Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 0.5 s
 		xil_printf("\n\r Devkit version 2.25 \n\r");
 		xil_printf("MAIN MENU \n\r");
 		xil_printf("*****\n\r");
@@ -148,7 +140,7 @@ int main()
 
 		ReadCommandPoll();
 		menusel = 99999;
-		sscanf(RecvBuffer,"%02d",&menusel);
+		sscanf(RecvBuffer,"%02u",&menusel);
 		if ( menusel < 0 || menusel > 15 ) {
 			xil_printf(" Invalid Command: Enter 0-15 \n\r");
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
@@ -164,7 +156,7 @@ int main()
 			xil_printf(" TRG Waveform Data: \t Enter 3 <return>\n\r");
 			xil_printf(" Processed Data: \t Enter 4 <return>\n\r");
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%01d",&mode);
+			sscanf(RecvBuffer,"%01u",&mode);
 
 			if (mode < 0 || mode > 4 ) { xil_printf("Invalid Command\n\r"); break; }
 			Xil_Out32 (XPAR_AXI_GPIO_14_BASEADDR, ((u32)mode));
@@ -197,7 +189,7 @@ int main()
 			xil_printf("\n\r Disable: Enter 0 <return>\n\r");
 			xil_printf(" Enable: Enter 1 <return>\n\r");
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%01d",&enable_state);
+			sscanf(RecvBuffer,"%01u",&enable_state);
 			if (enable_state != 0 && enable_state != 1) { xil_printf("Invalid Command\n\r"); break; }
 			Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, ((u32)enable_state));
 			// Register 18 Out enabled, In Disabled
@@ -254,7 +246,7 @@ int main()
 			xil_printf("\n\r Existing Threshold = %d \n\r",Xil_In32(XPAR_AXI_GPIO_10_BASEADDR));
 			xil_printf(" Enter Threshold (6144 to 10240) <return> \n\r");
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%04d",&iThreshold1);
+			sscanf(RecvBuffer,"%04u",&iThreshold1);
 			Xil_Out32(XPAR_AXI_GPIO_10_BASEADDR, ((u32)iThreshold1));
 			xil_printf("New Threshold = %d \n\r",Xil_In32(XPAR_AXI_GPIO_10_BASEADDR));
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
@@ -389,7 +381,7 @@ int main()
 		case 11: //change threshold over the serial connection
 			xil_printf("Enter the new threshold: <enter>\n");
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%04d",&iThreshold1);
+			sscanf(RecvBuffer,"%04u",&iThreshold1);
 			Xil_Out32(XPAR_AXI_GPIO_10_BASEADDR, ((u32)iThreshold1));
 			xil_printf("New Threshold = %d \n\r",Xil_In32(XPAR_AXI_GPIO_10_BASEADDR));
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
@@ -397,13 +389,13 @@ int main()
 		case 12: //change integrals over the serial connection
 			xil_printf("Enter each integral time followed by <enter>");
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%04d",&setBL);
+			sscanf(RecvBuffer,"%04u",&setBL);
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%04d",&setSI);
+			sscanf(RecvBuffer,"%04u",&setSI);
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%04d",&setLI);
+			sscanf(RecvBuffer,"%04u",&setLI);
 			ReadCommandPoll();
-			sscanf(RecvBuffer,"%04d",&setFI);
+			sscanf(RecvBuffer,"%04u",&setFI);
 
 			Xil_Out32 (XPAR_AXI_GPIO_0_BASEADDR, ((u32)((setBL+52)/4)));	//set baseline int time
 			Xil_Out32 (XPAR_AXI_GPIO_1_BASEADDR, ((u32)((setSI+52)/4)));	//set short int time
@@ -437,7 +429,7 @@ int main()
 
 			ReadCommandPoll();
 			menusel = 99999;
-			sscanf(RecvBuffer,"%01d",&menusel);
+			sscanf(RecvBuffer,"%01u",&menusel);
 			if( menusel < 0 || menusel > 4) { xil_printf("Invalid command.\n\r"); sleep(1); continue; }
 
 			switch(menusel){
@@ -446,11 +438,11 @@ int main()
 				cntrl = 0x1; //command 1 - write contents of serial register data to RDAC - see AD5144 datasheet pg 26
 				xil_printf(" Enter a value from 1-256 taps to write to the potentiometer  \n\r");
 				ReadCommandPoll();
-				sscanf(RecvBuffer,"%d",&data_bits);
+				sscanf(RecvBuffer,"%u",&data_bits);
 				if(data_bits < 1 || data_bits > 256) { xil_printf("Invalid number of taps.\n\r"); sleep(1); continue; }
 				xil_printf(" Enter a number 1-4 to select a particular potentiometer to adjust or 5 for all potentiometers  \n\r");
 				ReadCommandPoll();
-				sscanf(RecvBuffer,"%01d",&rdac);
+				sscanf(RecvBuffer,"%01u",&rdac);
 				if(rdac < 1 || rdac > 5) { xil_printf("Invalid pot selection.\n\r"); sleep(1); continue; }
 				xil_printf("%d \t %d \n\r", data_bits, rdac);
 
@@ -519,7 +511,7 @@ int main()
 				cntrl = 0x7; //command 9 - Copy RDAC register to EEPROM - see AD5144 datasheet pg 26
 				xil_printf("Select which potentiometer value to store in EEPROM (1-4)   \n\r");
 				ReadCommandPoll();
-				sscanf(RecvBuffer,"%01d",&rdac);
+				sscanf(RecvBuffer,"%01u",&rdac);
 				if(rdac < 1 || rdac > 4) { xil_printf("Invalid pot selection.\n\r"); sleep(1); continue; }
 				xil_printf("%d \t %d \n\r", data_bits, rdac);
 
@@ -554,7 +546,7 @@ int main()
 				cntrl = 0x3;//command 3 - Read back contents - see AD5144 datasheet pg 26
 				xil_printf(" Enter a number 1-4 to select which EEPROM to read  \n\r");
 				ReadCommandPoll();
-				sscanf(RecvBuffer,"%01d",&rdac);
+				sscanf(RecvBuffer,"%01u",&rdac);
 				if(rdac < 1 || rdac > 4) { xil_printf("Invalid pot selection.\n\r"); sleep(1); continue; }
 
 				switch(rdac){
@@ -633,7 +625,7 @@ int InitializeAXIDma(void) {
 	tmpVal_0 = tmpVal_0 | 0x1001; //<allow DMA to produce interrupts> 0 0 <run/stop>
 
 	Xil_Out32 (XPAR_AXI_DMA_0_BASEADDR + 0x30, tmpVal_0);
-	tmpVal_1 = Xil_In32(XPAR_AXI_DMA_0_BASEADDR + 0x30);
+	tmpVal_1 = Xil_In32(XPAR_AXI_DMA_0_BASEADDR + 0x30);	//what does the return value give us? What do we do with it?
 
 	return 0;
 }

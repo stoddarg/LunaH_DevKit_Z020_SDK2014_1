@@ -61,7 +61,6 @@ char cDirectoryLogFile0[] = "DirectoryFile.txt";	//Directory File to hold all fi
 FIL directoryLogFile;
 char filptr_cDIRFile_buffer[11] = {};
 int filptr_cDIRFile = 0;
-static int writeToDIRFile = 1;
 
 char cWriteToLogFile[LOG_FILE_BUFF_SIZE] = "";			//The buffer for adding information to the log file
 int iSprintfReturn = 0;
@@ -73,8 +72,8 @@ int dirSize = 0;
 char * dirFileContents;
 
 /* UART Variables */
-static char SendBuffer[32];		// Buffer for Transmitting Data	// Used for RecvCommandPoll()
-static char RecvBuffer[32];		// Buffer for Receiving Data
+static u8 SendBuffer[32];		// Buffer for Transmitting Data	// Used for RecvCommandPoll()
+static u8 RecvBuffer[32];		// Buffer for Receiving Data
 
 /* Menu Select Variable */
 int	menusel = 99999;	// Menu Select
@@ -115,7 +114,7 @@ short pot_addr = 0;
 
 // General Purpose Variables
 int Status; 					// General purpose Status indicator
-int sw;  						// switch to stop and return to main menu  0= default.  1 = return
+int sw = 0;  						// switch to stop and return to main menu  0= default.  1 = return
 u32 global_frame_counter = 0;	// Counts ... for ...
 int i = 0;						// Iterator in some places
 
