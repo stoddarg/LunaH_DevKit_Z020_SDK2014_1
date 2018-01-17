@@ -66,6 +66,15 @@ uint inumBytesRead = 0;
 uint inumBytesWritten = 0;
 int iSprintfRet = 0;
 
+//Per Second Transfer Variables
+unsigned int ui_localTime = 0;
+unsigned short us_nCountsPSD = 0;
+unsigned short us_nCounts = 0;
+unsigned short us_countsTotal = 0;
+unsigned short us_nCountsWide = 0;
+unsigned char uc_tempDigital = 0;
+unsigned char uc_tempAnalog = 0;
+
 ///// Function Definitions /////
 int ReadDataIn(int numFilesWritten, FIL * filObj);	// Print Data to the Terminal Window
 

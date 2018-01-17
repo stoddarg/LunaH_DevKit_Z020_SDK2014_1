@@ -30,18 +30,37 @@ int main()
 	XUartPs_Config *Config = XUartPs_LookupConfig(UART_DEVICEID);
 	if (NULL == Config) { return 1;}
 	Status = XUartPs_CfgInitialize(&Uart_PS, Config, Config->BaseAddress);
-	if (Status != 0){ return 1;	}
+	if (Status != 0){ xil_printf("XUartPS did not CfgInit properly.\n");	}
 
 	/* Conduct a Selftest for the UART */
 	Status = XUartPs_SelfTest(&Uart_PS);
-	if (Status != 0) { return 1; }			//handle error checks here better
+	if (Status != 0) { xil_printf("XUartPS failed self test.\n"); }			//handle error checks here better
 
 	/* Set to normal mode. */
 	XUartPs_SetOperMode(&Uart_PS, XUARTPS_OPER_MODE_NORMAL);
 	//*******************Setup the UART **********************//
 
+	//*******************Setup and init timer  **********************//
+	int status = 0;
+	u32 countVal1 = 0;
+	u32 countVal2 = 0;
+	XScuTimer_Config *ConfigPtr;
+	XScuTimer *TimerInstancePtr = &myTimer;
+
+	ConfigPtr = XScuTimer_LookupConfig(XPAR_PS7_SCUTIMER_0_DEVICE_ID);
+
+	status = XScuTimer_CfgInitialize(TimerInstancePtr, ConfigPtr, ConfigPtr->BaseAddr);
+	if(status != XST_SUCCESS)
+		xil_printf("failed to initialize");
+
+	status = XScuTimer_SelfTest(TimerInstancePtr);
+	if(status != XST_SUCCESS)
+		xil_printf("failed self-test");
+
+	XScuTimer_LoadTimer(TimerInstancePtr, TIMER_LOAD_VALUE);
+
 	//*******************Receive and Process Packets **********************//
-	Xil_Out32 (XPAR_AXI_GPIO_0_BASEADDR, 11);	// understand what this is doing
+	Xil_Out32 (XPAR_AXI_GPIO_0_BASEADDR, 11);
 	Xil_Out32 (XPAR_AXI_GPIO_1_BASEADDR, 71);
 	Xil_Out32 (XPAR_AXI_GPIO_2_BASEADDR, 167);
 	Xil_Out32 (XPAR_AXI_GPIO_3_BASEADDR, 2015);
@@ -113,9 +132,19 @@ int main()
 		XUartPs_SetOptions(&Uart_PS,XUARTPS_OPTION_RESET_RX);	// Clear UART Read Buffer
 		memset(RecvBuffer, '0', 32);							// Clear RecvBuffer Variable
 
+		countVal1 = XScuTimer_GetCounterValue(TimerInstancePtr);
+		XScuTimer_Start(TimerInstancePtr);
+		int x;
+		double dxx = 0.0;
+		double dy = 100.0;
+		double dval = 0.0;
+		for(x = 0; x < 100; x++)
+		{
+			dval = (dxx + 1 + (double)x) / dy;
+		}
 		//sleep(0.5);  // Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 0.5 s
-		xil_printf("\n\r Devkit version 2.25 \n\r");
-		xil_printf("MAIN MENU \n\r");
+		xil_printf("\r Devkit version 2.25 \r");
+		xil_printf("MAIN MENU \r");
 		xil_printf("*****\n\r");
 		xil_printf(" 0) Set Mode of Operation\n\r");
 		xil_printf(" 1) Enable or disable the system\n\r");
@@ -128,7 +157,7 @@ int main()
 		xil_printf(" 6) Perform a DMA transfer of Processed Data\n\r");
 		xil_printf(" 7) Check the Size of the Data Buffered (Max = 4095) \n\r");
 		xil_printf(" 8) Clear the Processed Data Buffers\n\r");
-		xil_printf(" 9) Execute Print of Data on DRAM \n\r");
+		xil_printf(" 9) *** Execute Print of Data on DRAM *** deprecated ***\n\r");
 		xil_printf("10) GUI Serial Transfer \n\r");
 		xil_printf("11) GUI Serial Change Trigger Threshold\n\r");
 		xil_printf("12) GUI Serial Change Integration Times\n\r");
@@ -136,13 +165,33 @@ int main()
 		xil_printf("14) High Voltage and Temperature Control \n\r");
 		xil_printf("15) Print Out All Files in the Directory \n\r");
 		xil_printf("******\n\r");
+
+		XScuTimer_Stop(TimerInstancePtr);
+		countVal2 = XScuTimer_GetCounterValue(TimerInstancePtr);
+
+		xil_printf("counter1 = %d, counter 2 = %d\n\r",countVal1, countVal2);
+		xil_printf("The latency is: %d \n\r", (countVal2 - countVal1));
+
 		while (XUartPs_IsSending(&Uart_PS)) { }  // Wait until Write Buffer is Sent
+
+		// test out sending the 'main menu' again, this time as separate uart sends
+		//iSprintfReturn = snprintf(cWriteToLogFile, LOG_FILE_BUFF_SIZE, "Set mode %d %f ", mode, dTime);
+		snprintf(uartTestBuffer, 32, "UART Testing\n\r");	//just try \n as the return for this
+		XUartPs_Send(&Uart_PS, uartTestBuffer, 32);
+		snprintf(uartTestBuffer, 32, "Devkit version 2.25 \n\r");	//just try \n as the return for this
+		XUartPs_Send(&Uart_PS, uartTestBuffer, 32);
+		snprintf(uartTestBuffer, 32, "*****\n\r");	//just try \n as the return for this
+		XUartPs_Send(&Uart_PS, uartTestBuffer, 32);
+		snprintf(uartTestBuffer, 32, " 0) Set Mode of Operation\n\r");	//just try \n as the return for this
+		XUartPs_Send(&Uart_PS, uartTestBuffer, 32);
+
+		xil_printf("Past the uart sends\r");
 
 		ReadCommandPoll();
 		menusel = 99999;
 		sscanf(RecvBuffer,"%02u",&menusel);
-		if ( menusel < 0 || menusel > 15 ) {
-			xil_printf(" Invalid Command: Enter 0-15 \n\r");
+		if ( menusel < 0 || menusel > 16 ) {
+			xil_printf(" Invalid Command: Enter 0-16 \n\r");
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 		}
 
@@ -237,7 +286,7 @@ int main()
 			xil_printf(" Press 'q' to Stop or Press Hardware USR reset button  \n\r");
 			xil_printf(" Press <return> to Start");
 			ReadCommandPoll();	//Just get a '\n' to continue
-			DAQ();
+			getWFDAQ();
 			sw = 0;   // broke out of the read loop, stop switch reset to 0
 			break;
 
@@ -603,6 +652,12 @@ int main()
 			snprintf(dirFileContents, dirSize + 1, dirFileContents + '\0');
 			xil_printf(dirFileContents);
 			free(dirFileContents);
+			break;
+		case 16:
+			//DAQ minimal function
+			//need to loop over this function
+			// utilize DAQ function below (as opposed to WFDAQ)
+
 		default :
 			break;
 		} // End Switch-Case Menu Select
@@ -618,14 +673,14 @@ int main()
 // Sets up the AXI DMA
 int InitializeAXIDma(void) {
 	u32 tmpVal_0 = 0;
-	u32 tmpVal_1 = 0;
+	//u32 tmpVal_1 = 0;
 
 	tmpVal_0 = Xil_In32(XPAR_AXI_DMA_0_BASEADDR + 0x30);
 
 	tmpVal_0 = tmpVal_0 | 0x1001; //<allow DMA to produce interrupts> 0 0 <run/stop>
 
 	Xil_Out32 (XPAR_AXI_DMA_0_BASEADDR + 0x30, tmpVal_0);
-	tmpVal_1 = Xil_In32(XPAR_AXI_DMA_0_BASEADDR + 0x30);	//what does the return value give us? What do we do with it?
+	Xil_In32(XPAR_AXI_DMA_0_BASEADDR + 0x30);	//what does the return value give us? What do we do with it?
 
 	return 0;
 }
@@ -698,15 +753,15 @@ int SetUpInterruptSystem(XScuGic *XScuGicInstancePtr) {
 // Returns buffer size read
 int ReadCommandPoll() {
 	u32 rbuff = 0;			// read buffer size returned
-	int i = 0; 				// index
+
 	XUartPs_SetOptions(&Uart_PS,XUARTPS_OPTION_RESET_RX);	// Clear UART Read Buffer
-	for (i=0; i<32; i++ ) { RecvBuffer[i] = '_'; }			// Clear RecvBuffer Variable
-	while (!(RecvBuffer[rbuff-1] == '\n' || RecvBuffer[rbuff-1] == '\r' || RecvBuffer[rbuff-1] == 'd')) {
+	memset(RecvBuffer, '0', 32);	// Clear RecvBuffer Variable
+	while (!(RecvBuffer[rbuff-1] == '\n' || RecvBuffer[rbuff-1] == '\r' || RecvBuffer[rbuff-1] == 'd'))
+	{
 		rbuff += XUartPs_Recv(&Uart_PS, &RecvBuffer[rbuff],(32 - rbuff));
 		sleep(0.1);			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 0.1 s
 	}
 	return rbuff;
-
 }
 //////////////////////////// ReadCommandPoll////////////////////////////////
 
@@ -764,21 +819,15 @@ void SetIntegrationTimes(int * setIntsArray, u32 * setSamples){
 int PrintData( ){
 	u32 data;
 	int dram_addr;
-
-	//Read all data from DRAM
-//	int dram_base = 0xa000000;
-//	int dram_cieling = 0xa00ffff; //read out data from all integration channels
-
-	// Read only Adj Average data from DRAM
 	int dram_base = 0xa000000;
-	int dram_cieling = 0xA004000; //read out just adjacent average (0xA004000 - 0xa000000 = 16384)
+	int dram_ceiling = 0xA004000; //read out just adjacent average (0xA004000 - 0xa000000 = 16384)
 
 	Xil_DCacheInvalidateRange(0x00000000, 65536);
 
-	for (dram_addr = dram_base; dram_addr <= dram_cieling; dram_addr+=4){
+	for (dram_addr = dram_base; dram_addr <= dram_ceiling; dram_addr+=4){
 		if (!sw) { sw = XGpioPs_ReadPin(&Gpio, SW_BREAK_GPIO); } //read pin
 		data = Xil_In32(dram_addr);
-		xil_printf("%d\r\n",data);
+		xil_printf("%d\r\n",data);				//is there a better place to put this? We need to transfer it over USB, but can we do that rather than printing it?
 		XUartPs_Recv(&Uart_PS, &RecvBuffer, 32);
 		if ( RecvBuffer[0] == 'q' ) { sw = 1;  }
 		if(sw) { return sw; }
@@ -788,11 +837,10 @@ int PrintData( ){
 }
 //////////////////////////// PrintData ////////////////////////////////
 
-
 //////////////////////////// Clear Processed Data Buffers ////////////////////////////////
 void ClearBuffers() {
 	Xil_Out32(XPAR_AXI_GPIO_9_BASEADDR,1);
-	sleep(1);						// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
+	//sleep(1);								// we should not need this
 	Xil_Out32(XPAR_AXI_GPIO_9_BASEADDR,0);
 }
 //////////////////////////// Clear Processed Data Buffers ////////////////////////////////
@@ -819,15 +867,14 @@ int DAQ(){
 		if ( RecvBuffer[0] == 'q' ) { sw = 1; }
 		if(sw) { return sw;	}
 
-		if(buffsize >= 4095){
-			//Xil_Out32 (XPAR_AXI_GPIO_18_BASEADDR, 0); // Disable Capture Module in FPGA
+		if(buffsize >= 4095)
+		{
 			Xil_Out32 (XPAR_AXI_GPIO_15_BASEADDR, 1);
-			//sleep(10);  // Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 10 s
 			Xil_Out32 (XPAR_AXI_DMA_0_BASEADDR + 0x48, 0xa000000);
 			Xil_Out32 (XPAR_AXI_DMA_0_BASEADDR + 0x58 , 65536);
 			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
 			Xil_Out32 (XPAR_AXI_GPIO_15_BASEADDR, 0);
-			//Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, 1);
+
 			ClearBuffers();
 			sw = ReadDataIn(filesWritten, &directoryLogFile);
 			++filesWritten;
@@ -842,32 +889,31 @@ int DAQ(){
 
 int getWFDAQ(){
 	int buffsize; 	//BRAM buffer size
-	int dram_addr;	// DRAM Address
+	//int dram_addr;	// DRAM Address
 
 	XUartPs_SetOptions(&Uart_PS,XUARTPS_OPTION_RESET_RX);
 
 	Xil_Out32 (XPAR_AXI_DMA_0_BASEADDR + 0x48, 0xa000000); 		// DMA Transfer Step 1
 	Xil_Out32 (XPAR_AXI_DMA_0_BASEADDR + 0x58 , 65536);			// DMA Transfer Step 2
 	sleep(1);						// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
-	ClearBuffers();												// Clear Buffers.
-	// Capture garbage in DRAM
-	for (dram_addr = 0xa000000; dram_addr <= 0xA004000; dram_addr+=4){Xil_In32(dram_addr);}
+	ClearBuffers();
+	//for (dram_addr = 0xa000000; dram_addr <= 0xA004000; dram_addr+=4){Xil_In32(dram_addr);}
 
 	while(1){
-		buffsize = Xil_In32 (XPAR_AXI_GPIO_11_BASEADDR);	// what does this look at?
 		if (!sw) { sw = XGpioPs_ReadPin(&Gpio, SW_BREAK_GPIO); } //read pin
 		XUartPs_Recv(&Uart_PS, &RecvBuffer, 32);
 		if ( RecvBuffer[0] == 'q' ) { sw = 1; }
 		if(sw) { return sw;	}
 
-		if(buffsize >= 4095){
-			//Xil_Out32 (XPAR_AXI_GPIO_18_BASEADDR, 0); // Disable Capture Module in FPGA
-			Xil_Out32 (XPAR_AXI_GPIO_15_BASEADDR, 1);
+		buffsize = Xil_In32 (XPAR_AXI_GPIO_11_BASEADDR);	// AA write pointer // tells how far the system has read in the AA module
+		if(buffsize >= 4095)
+		{
+			Xil_Out32 (XPAR_AXI_GPIO_15_BASEADDR, 1);				// init mux to transfer data between integrater modules to DMA
 			Xil_Out32 (XPAR_AXI_DMA_0_BASEADDR + 0x48, 0xa000000);
 			Xil_Out32 (XPAR_AXI_DMA_0_BASEADDR + 0x58 , 65536);
-			sleep(1); 			// Built in Latency ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 1 s
+			sleep(1); 												// this will change
 			Xil_Out32 (XPAR_AXI_GPIO_15_BASEADDR, 0);
-			//Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, 1);
+
 			ClearBuffers();
 			PrintData();
 		}

@@ -1,3 +1,8 @@
-﻿  MyForm.cpp
-  lunaHMaptestbed.vcxproj -> K:\Research Files\NASA\C16-018 LunaH-Map\Software Development\LunaH GUI\lunaHMaptestbed3-10-17_workingVersion\Debug\lunaHMaptestbed.exe
-  lunaHMaptestbed.vcxproj -> K:\Research Files\NASA\C16-018 LunaH-Map\Software Development\LunaH GUI\lunaHMaptestbed3-10-17_workingVersion\Debug\lunaHMaptestbed.pdb (Full PDB)
+﻿  captureWaveformsPopup.cpp
+  changeAxesPopUp.cpp
+  MyForm.cpp
+  setEnergyCutsPopUp.cpp
+  Generating Code...
+  .NETFramework,Version=v4.5.2.AssemblyAttributes.cpp
+  lunaHMaptestbed.vcxproj -> K:\users\GStoddard\MiniNS_Testing\MiniNS_CDH_v1.0_SDK2014_1\GUI\Debug\lunaHMaptestbed.exe
+  lunaHMaptestbed.vcxproj -> K:\users\GStoddard\MiniNS_Testing\MiniNS_CDH_v1.0_SDK2014_1\GUI\Debug\lunaHMaptestbed.pdb (Full PDB)

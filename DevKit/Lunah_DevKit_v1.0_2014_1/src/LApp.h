@@ -29,6 +29,8 @@
 #include "ff.h"
 #include "xil_cache.h"
 
+#include "xscutimer.h"
+
 // IiC Interface
 //#include "LI2C_Interface.h"
 
@@ -45,6 +47,10 @@ XGpioPs Gpio;						// Instance of the GPIO Driver Interface
 XGpioPs_Config *GPIOConfigPtr;		// GPIO configuration pointer
 static XScuGic_Config *GicConfig; 	// GicConfig
 XScuGic InterruptController;		// Interrupt controller
+
+// Timer Settings
+#define TIMER_LOAD_VALUE 	0xFFFFFFFF
+XScuTimer myTimer;
 
 /* FAT File System Variables */
 FATFS fatfs;
@@ -72,6 +78,7 @@ int dirSize = 0;
 char * dirFileContents;
 
 /* UART Variables */
+u8 uartTestBuffer[32];			//testing uart send GJS
 static u8 SendBuffer[32];		// Buffer for Transmitting Data	// Used for RecvCommandPoll()
 static u8 RecvBuffer[32];		// Buffer for Receiving Data
 

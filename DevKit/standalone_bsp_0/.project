@@ -3,7 +3,6 @@
 	<name>standalone_bsp_0</name>
 	<comment></comment>
 	<projects>
-		<project>hw_platform_0</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
